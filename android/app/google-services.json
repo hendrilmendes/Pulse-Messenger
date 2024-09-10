@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "851902004339",
+    "project_id": "social-2a172",
+    "storage_bucket": "social-2a172.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851902004339:android:2a58ed7b6d8ed10630fe06",
+        "android_client_info": {
+          "package_name": "com.github.hendrilmendes.social"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "851902004339-g9garhfp7di6s1rf9o1oqfvd04rt0ppb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.github.hendrilmendes.social",
+            "certificate_hash": "f908ff68223b34e5917a340a4da01895217becdf"
+          }
+        },
+        {
+          "client_id": "851902004339-eutb3qjna953mb1jo6jm4dtrfeqv6k0v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC00Wc5yE7jXLZX9Yi65f-TO-IAdBXKLoo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "851902004339-eutb3qjna953mb1jo6jm4dtrfeqv6k0v.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "851902004339-hescpfftjr8nlu1pa3eb8hsq8l9o5ml4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.social"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
