@@ -1,7 +1,14 @@
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:social/screens/user_profile/user_profile.dart';
 import 'package:social/screens/post_details/post_details.dart';
+import 'package:social/widgets/search/search.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -12,52 +19,82 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   bool _isSearchingUsers = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        final query = _searchController.text;
+        _isSearchingUsers = query.isNotEmpty;
+      });
+    });
+  }
+
+  Future<String?> _generateVideoThumbnail(String videoUrl) async {
+    try {
+      final filePath = await VideoThumbnail.thumbnailFile(
+        video: videoUrl,
+        thumbnailPath: (await getTemporaryDirectory()).path,
+        imageFormat: ImageFormat.JPEG,
+        maxWidth: 512,
+        quality: 100,
+      );
+      return filePath;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Erro ao gerar miniatura do vídeo: $e');
+      }
+      return null;
+    }
+  }
+
+  bool _isVideo(String url) {
+    return url.contains(".mp4") || url.contains(".mov") || url.contains(".avi");
+  }
+
+  void _openPost(BuildContext context, String postId) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => PostDetailsScreen(
+          postId: postId,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buscar'),
+        title: const Text(
+          'Buscar',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: TextField(
-              onChanged: (query) {
-                setState(() {
-                  _searchQuery = _capitalizeWords(query);
-                  _isSearchingUsers = _searchQuery.isNotEmpty;
-                });
-              },
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Pesquisar...',
-                filled: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+          child: SearchBarWidget(
+            searchQuery: _searchController.text,
+            onSearchChanged: (query) {
+              setState(() {
+                _searchController.text = query;
+                _isSearchingUsers = query.isNotEmpty;
+              });
+            },
           ),
         ),
       ),
-      body: _searchQuery.isEmpty
+      body: _searchController.text.isEmpty
           ? _buildPostSearchResults()
           : _isSearchingUsers
               ? _buildUserSearchResults()
               : _buildPostSearchResults(),
     );
-  }
-
-  String _capitalizeWords(String input) {
-    return input.split(' ').map((word) {
-      if (word.isEmpty) return '';
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
   }
 
   Widget _buildPostSearchResults() {
@@ -83,85 +120,66 @@ class _SearchScreenState extends State<SearchScreen> {
         final posts = snapshot.data!.docs;
 
         return GridView.builder(
-          padding: const EdgeInsets.all(8.0),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 8.0,
-            mainAxisSpacing: 8.0,
-            childAspectRatio: 0.7,
+            crossAxisCount: 3,
+            crossAxisSpacing: 4,
+            mainAxisSpacing: 4,
           ),
           itemCount: posts.length,
           itemBuilder: (context, index) {
             final post = posts[index];
-            final postData = post.data() as Map<String, dynamic>;
-            final imageUrl = postData['file_url'] as String?;
-            final userId = postData['user_id'];
-            final postId = post.id;
+            final postData = post.data() as Map<String, dynamic>?;
+            final postImage = postData?['file_url'] ?? '';
+            final isVideo = _isVideo(postImage);
 
-            // Busca o nome do usuário no documento do usuário correspondente
-            final userRef =
-                FirebaseFirestore.instance.collection('users').doc(userId);
-            return FutureBuilder<DocumentSnapshot>(
-              future: userRef.get(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                      child: CircularProgressIndicator.adaptive());
-                }
+            return GestureDetector(
+              onTap: () => _openPost(context, post.id),
+              child: Stack(
+                children: [
+                  FutureBuilder<String?>(
+                    future: isVideo ? _generateVideoThumbnail(postImage) : null,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                final userData = snapshot.data!.data() as Map<String, dynamic>;
-                final userName = userData['username'] ?? 'Unknown';
+                      final thumbnailPath = snapshot.data;
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PostDetailsScreen(
-                          postId: postId,
+                      return Container(
+                        decoration: BoxDecoration(
+                          image: postImage.isNotEmpty
+                              ? DecorationImage(
+                                  image: isVideo && thumbnailPath != null
+                                      ? FileImage(File(thumbnailPath))
+                                      : CachedNetworkImageProvider(postImage),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                      );
+                    },
+                  ),
+                  if (isVideo)
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
                         ),
                       ),
-                    );
-                  },
-                  child: Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        imageUrl != null && imageUrl.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(8.0)),
-                                child: Image.network(imageUrl,
-                                    width: double.infinity,
-                                    height: 150,
-                                    fit: BoxFit.cover),
-                              )
-                            : const SizedBox.shrink(),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            postData['content'] ?? 'Sem conteúdo',
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            userName, // Exibe o nome do usuário
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14.0,
-                                color: Colors.blueAccent),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                ],
+              ),
             );
           },
         );
@@ -174,7 +192,8 @@ class _SearchScreenState extends State<SearchScreen> {
       stream: FirebaseFirestore.instance
           .collection('users')
           .orderBy('username')
-          .startAt([_searchQuery]).endAt(['$_searchQuery\uf8ff']).snapshots(),
+          .startAt([_searchController.text]).endAt(
+              ['${_searchController.text}\uf8ff']).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator.adaptive());
@@ -211,7 +230,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 contentPadding: const EdgeInsets.all(8.0),
                 leading: CircleAvatar(
                   backgroundImage: userPhoto != null && userPhoto.isNotEmpty
-                      ? NetworkImage(userPhoto)
+                      ? CachedNetworkImageProvider(userPhoto)
                       : null,
                   child: userPhoto == null || userPhoto.isEmpty
                       ? const Icon(Icons.person, size: 30)
@@ -223,7 +242,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    CupertinoPageRoute(
                       builder: (context) => UserProfileScreen(
                         userId: userId,
                         username: userName,

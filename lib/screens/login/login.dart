@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social/providers/auth_provider.dart';
@@ -28,7 +29,7 @@ class LoginScreen extends StatelessWidget {
                 shape: CircleBorder(),
                 clipBehavior: Clip.antiAlias,
                 child: SizedBox(
-                  width: 500,
+                  width: 150,
                   child: Image(
                     image: AssetImage('assets/img/logo.png'),
                   ),
@@ -94,7 +95,7 @@ class LoginScreen extends StatelessWidget {
                             if (hasProfile) {
                               Navigator.pushAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                     builder: (context) => const HomeScreen()),
                                 (Route<dynamic> route) =>
                                     false, // Remove todas as rotas anteriores
@@ -102,7 +103,7 @@ class LoginScreen extends StatelessWidget {
                             } else {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                   builder: (context) =>
                                       CreateProfileScreen(user: user),
                                 ),
@@ -163,7 +164,7 @@ class LoginScreen extends StatelessWidget {
                             if (hasProfile) {
                               Navigator.pushAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                     builder: (context) => const HomeScreen()),
                                 (Route<dynamic> route) =>
                                     false, // Remove todas as rotas anteriores
@@ -171,7 +172,7 @@ class LoginScreen extends StatelessWidget {
                             } else {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                   builder: (context) =>
                                       CreateProfileScreen(user: user),
                                 ),
@@ -214,7 +215,7 @@ class LoginScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => RegisterScreen()),
+                    CupertinoPageRoute(builder: (context) => RegisterScreen()),
                   );
                 },
                 child: const Text('Não tem uma conta? Crie uma agora'),

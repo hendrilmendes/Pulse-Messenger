@@ -1,9 +1,9 @@
-// ignore_for_file: use_build_context_synchronously
-
+import 'package:chewie/chewie.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -23,7 +23,8 @@ class _PostScreenState extends State<PostScreen> {
   bool _isSubmitting = false;
   double _uploadProgress = 0.0;
   File? _selectedFile;
-  VideoPlayerController? _videoController;
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
   final ImagePicker _picker = ImagePicker();
   String? _fileType; // 'image' or 'video'
 
@@ -37,7 +38,7 @@ class _PostScreenState extends State<PostScreen> {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.photo),
-                title: const Text('Postar Imagem'),
+                title: Text(AppLocalizations.of(context)!.postImage),
                 onTap: () {
                   Navigator.pop(context);
                   _pickFile(ImageSource.gallery, 'image');
@@ -45,7 +46,7 @@ class _PostScreenState extends State<PostScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.video_library),
-                title: const Text('Postar Vídeo'),
+                title: Text(AppLocalizations.of(context)!.postVideo),
                 onTap: () {
                   Navigator.pop(context);
                   _pickFile(ImageSource.gallery, 'video');
@@ -68,29 +69,62 @@ class _PostScreenState extends State<PostScreen> {
         _selectedFile = File(pickedFile.path);
         _fileType = type;
 
+        // Dispose previous controllers if necessary
         if (_fileType == 'video') {
-          _videoController = VideoPlayerController.file(_selectedFile!)
-            ..initialize().then((_) {
-              setState(() {});
-            }).catchError((error) {
-              if (kDebugMode) {
-                print('Error initializing video controller: $error');
-              }
-            });
+          _initializeVideo(_selectedFile!);
         } else {
-          if (_videoController != null) {
-            _videoController!.dispose();
-            _videoController = null;
+          if (_videoPlayerController != null) {
+            _videoPlayerController!.dispose();
+            _videoPlayerController = null;
+          }
+          if (_chewieController != null) {
+            _chewieController!.dispose();
+            _chewieController = null;
           }
         }
       });
     }
   }
 
+  void _initializeVideo(File videoFile) {
+    _videoPlayerController = VideoPlayerController.file(videoFile)
+      ..initialize().then((_) {
+        if (mounted) {
+          final aspectRatio = _videoPlayerController!.value.aspectRatio;
+
+          // Ajuste para vídeos em modo retrato
+          double adjustedAspectRatio;
+          if (aspectRatio > 1) {
+            // Vídeo em paisagem
+            adjustedAspectRatio = aspectRatio;
+          } else {
+            // Vídeo em retrato (rotacionar)
+            adjustedAspectRatio = 1 / aspectRatio;
+          }
+
+          _chewieController = ChewieController(
+            videoPlayerController: _videoPlayerController!,
+            autoPlay: false,
+            looping: false,
+            showControls: true,
+            allowFullScreen: false,
+            aspectRatio: adjustedAspectRatio,
+          );
+
+          setState(() {}); // Rebuild para mostrar o player de vídeo
+        }
+      }).catchError((error) {
+        if (kDebugMode) {
+          print('Erro ao carregar vídeo: $error');
+        }
+      });
+  }
+
   Future<String> _uploadFile(File file) async {
     final storageRef = FirebaseStorage.instance.ref();
     final fileExtension = _fileType == 'video' ? 'mp4' : 'jpg';
-    final fileName = 'posts/${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+    final fileName =
+        'posts/${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
     final fileRef = storageRef.child(fileName);
 
     try {
@@ -107,7 +141,7 @@ class _PostScreenState extends State<PostScreen> {
       return fileUrl;
     } catch (e) {
       if (kDebugMode) {
-        print('Error uploading file: $e');
+        print('Erro ao fazer upload do arquivo: $e');
       }
       rethrow;
     }
@@ -157,17 +191,22 @@ class _PostScreenState extends State<PostScreen> {
       setState(() {
         _selectedFile = null;
         _fileType = null;
-        if (_videoController != null) {
-          _videoController!.dispose();
-          _videoController = null;
+        if (_videoPlayerController != null) {
+          _videoPlayerController!.dispose();
+          _videoPlayerController = null;
+        }
+        if (_chewieController != null) {
+          _chewieController!.dispose();
+          _chewieController = null;
         }
       });
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro: $e')),
       );
       if (kDebugMode) {
-        print('Error: $e');
+        print('Erro: $e');
       }
     } finally {
       setState(() {
@@ -177,11 +216,52 @@ class _PostScreenState extends State<PostScreen> {
     }
   }
 
+  Future<void> deletePost(String postId, String fileUrl) async {
+    try {
+      // Excluir o post do Firestore
+      await FirebaseFirestore.instance.collection('posts').doc(postId).delete();
+
+      // Excluir o arquivo do Firebase Storage
+      final fileRef = FirebaseStorage.instance.refFromURL(fileUrl);
+      await fileRef.delete();
+
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post excluído com sucesso.')),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Erro ao excluir o post: $e');
+      }
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir o post: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    if (_videoPlayerController != null) {
+      _videoPlayerController!.dispose();
+    }
+    if (_chewieController != null) {
+      _chewieController!.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Post'),
+        title: Text(
+          AppLocalizations.of(context)!.createPost,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -190,62 +270,80 @@ class _PostScreenState extends State<PostScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Campo para o conteúdo
               TextFormField(
                 controller: _contentController,
-                decoration: const InputDecoration(
-                  labelText: 'Conteúdo',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.content_paste),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.content,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.content_paste),
                 ),
-                maxLines: 6,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Por favor insira o conteúdo';
+                    return AppLocalizations.of(context)!.insertContent;
                   }
                   return null;
                 },
               ),
-
               const SizedBox(height: 16),
-
-              // Botão para selecionar o arquivo
-              GestureDetector(
-                onTap: _showPickOptions,
-                child: Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: _selectedFile == null
-                      ? Center(
-                          child: Icon(Icons.camera_alt,
-                              size: 50, color: Colors.grey[700]),
-                        )
-                      : _fileType == 'image'
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child:
-                                  Image.file(_selectedFile!, fit: BoxFit.cover),
+              Stack(
+                children: [
+                  GestureDetector(
+                    onTap: _showPickOptions,
+                    child: Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _selectedFile == null
+                          ? Center(
+                              child: Icon(Icons.camera_alt,
+                                  size: 50, color: Colors.grey[700]),
                             )
-                          : _fileType == 'video' && _videoController != null
+                          : _fileType == 'image'
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: AspectRatio(
-                                    aspectRatio:
-                                        _videoController!.value.aspectRatio,
-                                    child: VideoPlayer(_videoController!),
-                                  ),
+                                  child: Image.file(_selectedFile!,
+                                      fit: BoxFit.cover),
                                 )
-                              : const Center(
-                                  child: CircularProgressIndicator.adaptive()),
-                ),
+                              : _fileType == 'video' &&
+                                      _chewieController != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Chewie(
+                                        controller: _chewieController!,
+                                      ),
+                                    )
+                                  : const Center(
+                                      child:
+                                          CircularProgressIndicator.adaptive()),
+                    ),
+                  ),
+                  if (_selectedFile != null)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            _selectedFile = null;
+                            _fileType = null;
+                            if (_videoPlayerController != null) {
+                              _videoPlayerController!.dispose();
+                              _videoPlayerController = null;
+                            }
+                            if (_chewieController != null) {
+                              _chewieController!.dispose();
+                              _chewieController = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                ],
               ),
-
               const SizedBox(height: 20),
-
-              // Mostrar progresso do upload
               if (_isSubmitting && _uploadProgress < 1.0)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -255,8 +353,6 @@ class _PostScreenState extends State<PostScreen> {
                     color: Colors.blue,
                   ),
                 ),
-
-              // Botão de envio do post
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitPost,
                 style: ElevatedButton.styleFrom(
@@ -269,7 +365,7 @@ class _PostScreenState extends State<PostScreen> {
                         height: 24,
                         child: CircularProgressIndicator.adaptive(),
                       )
-                    : const Text('Enviar'),
+                    : Text(AppLocalizations.of(context)!.post),
               ),
             ],
           ),

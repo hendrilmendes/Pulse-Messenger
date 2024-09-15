@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,10 +22,12 @@ class _StoriesScreenState extends State<StoriesScreen> {
   final TextEditingController _storyController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   File? _image;
+  Timer? _timer;
 
   @override
   void dispose() {
     _storyController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -63,6 +68,8 @@ class _StoriesScreenState extends State<StoriesScreen> {
           'story_content': _storyController.text,
           'image_url': imageUrl ?? '',
           'created_at': Timestamp.now(),
+          'expires_at':
+              Timestamp.fromDate(DateTime.now().add(const Duration(hours: 24))),
         });
         _storyController.clear();
         setState(() {
@@ -83,13 +90,40 @@ class _StoriesScreenState extends State<StoriesScreen> {
         .delete();
   }
 
+  Future<void> _removeExpiredStories() async {
+    final now = Timestamp.now();
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('stories')
+        .where('expires_at', isLessThanOrEqualTo: now)
+        .get();
+
+    for (var doc in querySnapshot.docs) {
+      await _deleteStory(doc.id);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _removeExpiredStories();
+
+    _timer = Timer.periodic(const Duration(minutes: 30), (timer) {
+      _removeExpiredStories();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Momentos'),
+        title: Text(
+          AppLocalizations.of(context)!.postMomment,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -109,8 +143,8 @@ class _StoriesScreenState extends State<StoriesScreen> {
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                        child: Text('Não há momentos disponíveis.'));
+                    return Center(
+                        child: Text(AppLocalizations.of(context)!.noMomment));
                   }
 
                   final stories = snapshot.data!.docs;
@@ -150,7 +184,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                   CircleAvatar(
                                     radius: 30,
                                     backgroundImage: userPhoto.isNotEmpty
-                                        ? NetworkImage(userPhoto)
+                                        ? CachedNetworkImageProvider(userPhoto)
                                         : null,
                                     child: userPhoto.isEmpty
                                         ? const Icon(Icons.person)
@@ -196,20 +230,27 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                     context: context,
                                     builder: (context) {
                                       return AlertDialog(
-                                        title: const Text('Confirmar Exclusão'),
-                                        content: const Text(
-                                            'Tem certeza de que deseja excluir esta história?'),
+                                        title: Text(
+                                            AppLocalizations.of(context)!
+                                                .deleteConfirm),
+                                        content: Text(
+                                            AppLocalizations.of(context)!
+                                                .deleteMomment),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.of(context)
                                                     .pop(false),
-                                            child: const Text('Cancelar'),
+                                            child: Text(
+                                                AppLocalizations.of(context)!
+                                                    .cancel),
                                           ),
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.of(context).pop(true),
-                                            child: const Text('Excluir'),
+                                            child: Text(
+                                                AppLocalizations.of(context)!
+                                                    .delete),
                                           ),
                                         ],
                                       );

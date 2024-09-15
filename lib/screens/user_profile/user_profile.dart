@@ -1,8 +1,15 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/screens/chat_details/chat_details.dart';
 import 'package:social/screens/post_details/post_details.dart';
+import 'package:video_thumbnail/video_thumbnail.dart'; // Adicione isso
+import 'package:path_provider/path_provider.dart'; // Adicione isso
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -165,14 +172,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         .doc(chatIdString)
         .get();
 
+    bool isGroup =
+        chatQuery.data()?['isGroup'] ?? false; // Check if it's a group chat
+
     if (chatQuery.exists) {
       Navigator.push(
-        // ignore: use_build_context_synchronously
         context,
-        MaterialPageRoute(
+        CupertinoPageRoute(
           builder: (context) => ChatDetailScreen(
             chatId: chatIdString,
             userId: userId,
+            isGroup: isGroup, // Pass isGroup here
           ),
         ),
       );
@@ -184,15 +194,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         'participants': [currentUserId, userId],
         'last_message': '',
         'last_message_time': Timestamp.now(),
+        'isGroup': false, // Default to false for individual chats
       });
 
       Navigator.push(
-        // ignore: use_build_context_synchronously
         context,
-        MaterialPageRoute(
+        CupertinoPageRoute(
           builder: (context) => ChatDetailScreen(
             chatId: chatIdString,
             userId: userId,
+            isGroup: false,
           ),
         ),
       );
@@ -202,7 +213,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void _openPost(BuildContext context, String postId) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => PostDetailsScreen(
           postId: postId,
         ),
@@ -210,12 +221,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Future<String?> _generateVideoThumbnail(String videoUrl) async {
+    final filePath = await VideoThumbnail.thumbnailFile(
+      video: videoUrl,
+      thumbnailPath: (await getTemporaryDirectory()).path,
+      imageFormat: ImageFormat.JPEG,
+      maxWidth: 512,
+      quality: 100,
+    );
+    return filePath;
+  }
+
+  bool _isVideo(String url) {
+    return url.contains(".mp4") || url.contains(".mov") || url.contains(".avi");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.username),
-      ),
+      appBar: AppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<DocumentSnapshot>(
@@ -246,7 +270,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     CircleAvatar(
                       radius: 50,
                       backgroundImage: userProfilePicture.isNotEmpty
-                          ? NetworkImage(userProfilePicture)
+                          ? CachedNetworkImageProvider(userProfilePicture)
                           : null,
                       backgroundColor: Colors.grey[300],
                       child: userProfilePicture.isEmpty
@@ -311,16 +335,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  height: 300,
+                Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('posts')
                         .where('user_id', isEqualTo: widget.userId)
+                        .orderBy('created_at', descending: true)
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                            child: CircularProgressIndicator.adaptive());
                       }
 
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -340,21 +365,64 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         itemBuilder: (context, index) {
                           final post = posts[index];
                           final postData = post.data() as Map<String, dynamic>?;
-                          final postImage = postData?['image_url'] ?? '';
+                          final postImage = postData?['file_url'] ?? '';
+                          final isVideo = _isVideo(postImage);
+
                           return GestureDetector(
                             onTap: () => _openPost(context, post.id),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                image: postImage.isNotEmpty
-                                    ? DecorationImage(
-                                        image: NetworkImage(postImage),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[300]!),
-                              ),
+                            child: Stack(
+                              children: [
+                                FutureBuilder<String?>(
+                                  future: isVideo
+                                      ? _generateVideoThumbnail(postImage)
+                                      : null,
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+
+                                    final thumbnailPath = snapshot.data;
+
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        image: postImage.isNotEmpty
+                                            ? DecorationImage(
+                                                image: isVideo &&
+                                                        thumbnailPath != null
+                                                    ? FileImage(
+                                                        File(thumbnailPath))
+                                                    : CachedNetworkImageProvider(
+                                                        postImage),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: Colors.grey[300]!),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                if (isVideo)
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.6),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           );
                         },

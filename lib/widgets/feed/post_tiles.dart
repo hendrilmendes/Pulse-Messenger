@@ -1,8 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social/screens/comments/comments.dart';
 import 'package:social/screens/post_details/post_details.dart';
+import 'package:social/screens/shared/shared.dart';
+import 'package:social/widgets/video/video_player.dart';
 
 class PostTile extends StatefulWidget {
   final String username;
@@ -83,10 +87,8 @@ class _PostTileState extends State<PostTile> {
         } else {
           likes.add(widget.currentUserId);
 
-          // Adicionar notificação quando um post é curtido
           final notificationsCollection =
               FirebaseFirestore.instance.collection('notifications');
-
           final existingNotificationsQuery = notificationsCollection
               .where('post_id', isEqualTo: widget.postId)
               .where('from_user_id', isEqualTo: widget.currentUserId)
@@ -96,12 +98,12 @@ class _PostTileState extends State<PostTile> {
 
           if ((await existingNotificationsQuery).docs.isEmpty) {
             await notificationsCollection.add({
-              'user_id': postData['user_id'], // ID do usuário que criou o post
-              'from_user_id': widget.currentUserId, // ID do usuário que curtiu
-              'type': 'like', // Tipo de notificação
+              'user_id': postData['user_id'],
+              'from_user_id': widget.currentUserId,
+              'type': 'like',
               'created_at': FieldValue.serverTimestamp(),
-              'is_notified': false, // Notificação ainda não exibida
-              'post_id': widget.postId, // ID do post
+              'is_notified': false,
+              'post_id': widget.postId,
             });
           }
         }
@@ -124,7 +126,7 @@ class _PostTileState extends State<PostTile> {
   void _onImageTap() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => PostDetailsScreen(postId: widget.postId),
       ),
     );
@@ -162,8 +164,7 @@ class _PostTileState extends State<PostTile> {
                       ),
                       child: CommentsScreen(
                         postId: widget.postId,
-                        postOwnerId:
-                            postOwnerId, // Use o ID do proprietário correto
+                        postOwnerId: postOwnerId,
                       ),
                     ),
                   ),
@@ -174,6 +175,53 @@ class _PostTileState extends State<PostTile> {
         );
       },
     );
+  }
+
+  void _showShareOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: ListView(
+                controller: controller,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.9,
+                    width: MediaQuery.of(context).size.width,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: ShareOptionsScreen(postId: widget.postId),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  bool _isVideo(String url) {
+    // Verifica se a URL contém uma extensão de vídeo comum
+    return url.contains(".mp4") || url.contains(".mov") || url.contains(".avi");
   }
 
   @override
@@ -193,7 +241,7 @@ class _PostTileState extends State<PostTile> {
                 children: [
                   CircleAvatar(
                     backgroundImage: widget.userProfilePicture.isNotEmpty
-                        ? NetworkImage(widget.userProfilePicture)
+                        ? CachedNetworkImageProvider(widget.userProfilePicture)
                         : null,
                     radius: 20,
                     child: widget.userProfilePicture.isEmpty
@@ -217,21 +265,29 @@ class _PostTileState extends State<PostTile> {
             ),
           ),
 
-          // Imagem do post (se disponível)
+          // Video ou Imagem do post
           if (widget.imageUrl != null)
             GestureDetector(
               onTap: _onImageTap,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxHeight: 200,
-                  ),
-                  child: Image.network(
-                    widget.imageUrl!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: _isVideo(widget.imageUrl!)
+                      ? AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: VideoPlayerWidget(url: widget.imageUrl!),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: widget.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator.adaptive(),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        ),
                 ),
               ),
             ),
@@ -295,15 +351,13 @@ class _PostTileState extends State<PostTile> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.share, size: 20),
-                          onPressed: () {},
+                          onPressed: () {
+                            _showShareOptions(context);
+                          },
                         ),
                       ],
                     );
                   },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.bookmark, size: 20),
-                  onPressed: () {},
                 ),
               ],
             ),

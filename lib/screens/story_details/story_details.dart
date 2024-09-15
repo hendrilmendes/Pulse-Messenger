@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -19,7 +20,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   bool _hasError = false;
   String _errorMessage = '';
   double _progress = 0.0;
-  bool _isPaused = false; // Controla o estado de pausa
+  bool _isPaused = false;
+  Timer? _progressTimer;
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   }
 
   void _startAutoPlay() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_isPaused) return;
 
@@ -87,8 +90,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
 
   void _startProgress() {
     _progress = 0.0;
-    Timer.periodic(const Duration(milliseconds: 50), (timer) {
-      if (_isPaused) return;
+    _progressTimer?.cancel(); // Cancela qualquer progresso anterior
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (_isPaused) return; // Não avança o progresso se pausado
       if (mounted) {
         setState(() {
           _progress += 0.01;
@@ -114,6 +118,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       _isPaused = true;
     });
     _timer?.cancel();
+    _progressTimer?.cancel();
   }
 
   void _resumeStory() {
@@ -126,6 +131,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _progressTimer?.cancel(); // Cancela o timer de progresso
     _pageController.dispose();
     super.dispose();
   }
@@ -176,25 +182,28 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                           final userPhoto = story['user_photo'] ?? '';
                           final userName = story['username'] ?? 'Unknown';
                           final storyImage = story['image_url'] ?? '';
+                          final storyContent = story['story_content'] ?? '';
 
                           return Stack(
                             fit: StackFit.expand,
                             children: [
-                              storyImage.isNotEmpty
-                                  ? Image.network(
-                                      storyImage,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return const Center(
-                                          child: Text(
-                                              'Falha ao carregar imagem',
-                                              style: TextStyle(
-                                                  color: Colors.white)),
-                                        );
-                                      },
-                                    )
-                                  : Container(color: Colors.black),
+                              CachedNetworkImage(
+                                imageUrl: storyImage,
+                                fit: BoxFit.cover,
+                                errorWidget: (context, url, error) =>
+                                    const Center(
+                                  child: Text(
+                                    'Falha ao carregar imagem',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                ),
+                              ),
                               Positioned(
                                 top: 50,
                                 left: 10,
@@ -204,7 +213,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                     CircleAvatar(
                                       radius: 20,
                                       backgroundImage: userPhoto.isNotEmpty
-                                          ? NetworkImage(userPhoto)
+                                          ? CachedNetworkImageProvider(
+                                              userPhoto)
                                           : null,
                                       child: userPhoto.isEmpty
                                           ? const Icon(Icons.person,
@@ -230,6 +240,19 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
                                           Colors.white),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 20,
+                                left: 10,
+                                right: 10,
+                                child: Text(
+                                  storyContent,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ],

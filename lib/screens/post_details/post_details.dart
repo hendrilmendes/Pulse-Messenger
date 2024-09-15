@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/screens/comments/comments.dart';
+import 'package:social/widgets/video/video_player.dart';
 
 class PostDetailsScreen extends StatelessWidget {
   final String postId;
@@ -76,6 +78,27 @@ class PostDetailsScreen extends StatelessWidget {
     );
   }
 
+  Future<int> _getCommentsCount(String postId) async {
+    final commentsSnapshot = await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .get();
+
+    return commentsSnapshot.size;
+  }
+
+  Future<String> _getPostOwnerId(String postId) async {
+    final postSnapshot =
+        await FirebaseFirestore.instance.collection('posts').doc(postId).get();
+    final postData = postSnapshot.data() as Map<String, dynamic>;
+    return postData['user_id'] ?? '';
+  }
+
+  bool _isVideo(String url) {
+    return url.contains(".mp4") || url.contains(".mov") || url.contains(".avi");
+  }
+
   @override
   Widget build(BuildContext context) {
     const userId = 'user_current_id';
@@ -94,7 +117,7 @@ class PostDetailsScreen extends StatelessWidget {
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: CircularProgressIndicator.adaptive());
                     }
 
                     if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -103,12 +126,21 @@ class PostDetailsScreen extends StatelessWidget {
 
                     final postData =
                         snapshot.data!.data() as Map<String, dynamic>;
-                    final imageUrl = postData['file_url'] ?? '';
+                    final fileUrl = postData['file_url'] ?? '';
 
-                    return imageUrl.isNotEmpty
-                        ? InteractiveViewer(
-                            child: Image.network(imageUrl, fit: BoxFit.contain),
-                          )
+                    // Verificar se é um vídeo ou imagem
+                    return fileUrl.isNotEmpty
+                        ? _isVideo(fileUrl)
+                            ? AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: VideoPlayerWidget(url: fileUrl),
+                              )
+                            : InteractiveViewer(
+                                child: Image(
+                                  image: CachedNetworkImageProvider(fileUrl),
+                                  fit: BoxFit.contain,
+                                ),
+                              )
                         : const SizedBox.shrink();
                   },
                 ),
@@ -121,129 +153,152 @@ class PostDetailsScreen extends StatelessWidget {
             delegate: SliverChildListDelegate(
               [
                 StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('posts')
-                      .doc(postId)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+                    stream: FirebaseFirestore.instance
+                        .collection('posts')
+                        .doc(postId)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                    if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return const Center(child: Text('Post não encontrado.'));
-                    }
+                      if (!snapshot.hasData || !snapshot.data!.exists) {
+                        return const Center(
+                            child: Text('Post não encontrado.'));
+                      }
 
-                    final postData =
-                        snapshot.data!.data() as Map<String, dynamic>;
-                    final userPhoto = postData['user_photo'] ?? '';
-                    final username =
-                        postData['username'] ?? 'Usuário desconhecido';
-                    final content = postData['content'] ?? 'Sem legenda';
-                    final likesData = postData['likes'];
-                    final likes = (likesData is List
-                            ? List<String>.from(
-                                likesData.map((e) => e.toString()))
-                            : [])
-                        .toList();
-                    final comments =
-                        postData['comments'] as List<dynamic>? ?? [];
-                    final commentsCount = comments.length;
-                    final isLiked = likes.contains(userId);
-                    final postOwnerId = postData['user_id'] ?? '';
+                      // Conteúdo do post (não alterado)
+                      final postData =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      final userPhoto = postData['user_photo'] ?? '';
+                      final username =
+                          postData['username'] ?? 'Usuário desconhecido';
+                      final content = postData['content'] ?? 'Sem legenda';
+                      final likesData = postData['likes'];
+                      final likes = (likesData is List
+                              ? List<String>.from(
+                                  likesData.map((e) => e.toString()))
+                              : [])
+                          .toList();
+                      final isLiked = likes.contains(userId);
 
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundImage: userPhoto.isNotEmpty
-                                    ? NetworkImage(userPhoto)
-                                    : null,
-                                child: userPhoto.isEmpty
-                                    ? const Icon(Icons.person)
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                username,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                      return FutureBuilder<int>(
+                        future: _getCommentsCount(postId),
+                        builder: (context, commentsSnapshot) {
+                          final commentsCount = commentsSnapshot.data ?? 0;
+
+                          if (commentsSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: userPhoto.isNotEmpty
+                                          ? CachedNetworkImageProvider(
+                                              userPhoto)
+                                          : null,
+                                      child: userPhoto.isEmpty
+                                          ? const Icon(Icons.person)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      username,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      icon: const Icon(Icons.bookmark_border),
+                                      onPressed: () {
+                                        // Add bookmark logic here
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                icon: const Icon(Icons.bookmark_border),
-                                onPressed: () {
-                                  // Add bookmark logic here
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            content,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isLiked ? Colors.red : null,
+                                const SizedBox(height: 8),
+                                Text(
+                                  content,
+                                  style: const TextStyle(fontSize: 14),
                                 ),
-                                onPressed: () {
-                                  _likePost(postId, userId);
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${likes.length} curtidas',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: isLiked ? Colors.red : null,
+                                      ),
+                                      onPressed: () {
+                                        _likePost(postId, userId);
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${likes.length} curtidas',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Text(
+                                      '$commentsCount comentários',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      icon: const Icon(Icons.share),
+                                      onPressed: () {
+                                        // Add share logic here
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Text(
-                                '$commentsCount comentários',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                icon: const Icon(Icons.share),
-                                onPressed: () {
-                                  // Add share logic here
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: FloatingActionButton.extended(
-                              onPressed: () =>
-                                  _showComments(context, postOwnerId),
-                              label: const Text('Comentários'),
-                              icon: const Icon(Icons.comment),
+                                const SizedBox(height: 16),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                          );
+                        },
+                      );
+                    }),
               ],
             ),
           ),
         ],
+      ),
+      floatingActionButton: FutureBuilder<String>(
+        future: _getPostOwnerId(postId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+
+          if (!snapshot.hasData) {
+            return const SizedBox.shrink();
+          }
+
+          final postOwnerId = snapshot.data!;
+
+          return FloatingActionButton(
+            onPressed: () => _showComments(context, postOwnerId),
+            child: const Icon(Icons.comment),
+          );
+        },
       ),
     );
   }

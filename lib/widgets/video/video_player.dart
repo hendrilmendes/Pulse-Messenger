@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
-import 'dart:typed_data';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String url;
@@ -15,78 +14,61 @@ class VideoPlayerWidget extends StatefulWidget {
 
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? _controller;
-  Future<Uint8List?>? _thumbnailFuture;
+  ChewieController? _chewieController;
 
   @override
   void initState() {
     super.initState();
-    // ignore: deprecated_member_use
-    _controller = VideoPlayerController.network(widget.url)
-      ..initialize().then((_) {
-        setState(() {});
-      });
-    _thumbnailFuture = _generateThumbnail(widget.url);
+    _initializeVideoPlayer();
+  }
+
+  Future<void> _initializeVideoPlayer() async {
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    await _controller!.initialize();
+
+    _chewieController = ChewieController(
+      videoPlayerController: _controller!,
+      autoPlay: false,
+      looping: false,
+      showControls: true,
+    );
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
     _controller?.dispose();
+    _chewieController?.dispose();
     super.dispose();
-  }
-
-  Future<Uint8List?> _generateThumbnail(String videoUrl) async {
-    final uint8List = await VideoThumbnail.thumbnailData(
-      video: videoUrl,
-      imageFormat: ImageFormat.JPEG,
-      maxWidth: 128,
-      quality: 75,
-    );
-    return uint8List;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        if (_controller != null && _controller!.value.isInitialized)
-          AspectRatio(
-            aspectRatio: _controller!.value.aspectRatio,
-            child: VideoPlayer(_controller!),
-          )
-        else
-          const Center(child: CircularProgressIndicator.adaptive()),
-        FutureBuilder<Uint8List?>(
-          future: _thumbnailFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasData && snapshot.data != null) {
-              return Image.memory(
-                snapshot.data!,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-        Positioned(
-          bottom: 10,
-          right: 10,
-          child: IconButton(
-            icon: const Icon(Icons.play_arrow, color: Colors.white, size: 30),
-            onPressed: () {
-              if (_controller != null && _controller!.value.isInitialized) {
-                _controller!.play();
-                setState(() {});
-              }
-            },
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            if (_chewieController != null &&
+                _controller != null &&
+                _controller!.value.isInitialized)
+              FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  child: Chewie(controller: _chewieController!),
+                ),
+              )
+            else
+              const Center(child: CircularProgressIndicator.adaptive()),
+          ],
+        );
+      },
     );
   }
 }

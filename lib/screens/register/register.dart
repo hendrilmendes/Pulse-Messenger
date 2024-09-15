@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social/providers/auth_provider.dart';
@@ -15,7 +16,12 @@ class RegisterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Registrar"),
+        title: const Text(
+          "Registrar",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
       ),
       body: Stack(
         children: [
@@ -70,71 +76,75 @@ class RegisterScreen extends StatelessWidget {
                   const SizedBox(height: 30),
 
                   // Botão de registro
-       ElevatedButton(
-  onPressed: () async {
-    final email = _emailController.text;
-    final password = _passwordController.text;
+                  ElevatedButton(
+                    onPressed: () async {
+                      final email = _emailController.text;
+                      final password = _passwordController.text;
 
-    try {
-      // Verifica se o email já está registrado
-      final isRegistered = await Provider.of<AuthProvider>(context, listen: false)
-          .isEmailRegistered(email);
+                      try {
+                        // Verifica se o email já está registrado
+                        final isRegistered = await Provider.of<AuthProvider>(
+                                context,
+                                listen: false)
+                            .isEmailRegistered(email);
 
-      if (isRegistered) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email já registrado.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return; // Impede a criação de um novo usuário se o email já estiver em uso
-      }
+                        if (isRegistered) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Email já registrado.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return; // Impede a criação de um novo usuário se o email já estiver em uso
+                        }
 
-      // Se o email não estiver registrado, prossegue com o registro
-      final result = await Provider.of<AuthProvider>(context, listen: false)
-          .signUpWithEmail(email, password, context);
+                        // Se o email não estiver registrado, prossegue com o registro
+                        final result = await Provider.of<AuthProvider>(context,
+                                listen: false)
+                            .signUpWithEmail(email, password, context);
 
-      // Verifica se o usuário foi criado com sucesso
-      if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registro bem-sucedido! Faça login.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+                        // Verifica se o usuário foi criado com sucesso
+                        if (result != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Registro bem-sucedido! Faça login.'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
 
-        // Navega para a tela de login
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LoginScreen(),
-          ),
-        );
-      }
-    } catch (e) {
-      // Caso haja um erro inesperado
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Esse email já esta cadastrado'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    padding: const EdgeInsets.symmetric(vertical: 18),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-    ),
-  ),
-  child: const Text(
-    'Criar',
-    style: TextStyle(
-      fontSize: 18,
-    ),
-  ),
-)
-       ],
+                          // Navega para a tela de login
+                          Navigator.pushReplacement(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => LoginScreen(),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        // Caso haja um erro inesperado
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Esse email já esta cadastrado'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Criar',
+                      style: TextStyle(
+                        fontSize: 18,
+                      ),
+                    ),
+                  )
+                ],
               ),
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class CommentActionBar extends StatelessWidget {
   final TextEditingController commentController;
@@ -22,7 +23,7 @@ class CommentActionBar extends StatelessWidget {
               child: TextField(
                 controller: commentController,
                 decoration: InputDecoration(
-                  hintText: 'Adicione um comentário...',
+                  hintText: AppLocalizations.of(context)!.hintText,
                   hintStyle: TextStyle(color: Colors.grey[600]),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),

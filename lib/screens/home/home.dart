@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:social/screens/chat/chat.dart';
 import 'package:social/screens/feed/feed.dart';
@@ -56,26 +57,26 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        items: const <BottomNavigationBarItem>[
+        items:  <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: 'Feed',
+            icon: const Icon(Icons.home_filled),
+            label: AppLocalizations.of(context)!.home,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Buscar',
+            icon: const Icon(Icons.search),
+            label: AppLocalizations.of(context)!.search,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
+            icon: const Icon(Icons.chat),
+            label: AppLocalizations.of(context)!.chat,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.local_activity),
-            label: 'Atividades',
+            icon: const Icon(Icons.local_activity),
+            label: AppLocalizations.of(context)!.activity,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
+            icon: const Icon(Icons.person),
+            label: AppLocalizations.of(context)!.profile
           ),
         ],
         currentIndex: _currentIndex,

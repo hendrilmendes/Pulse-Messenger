@@ -1,20 +1,21 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-
 import 'package:social/screens/call/call.dart';
 import 'package:social/screens/conversation_details/conversation_details.dart';
 import 'package:social/screens/video_call/video_call.dart';
 import 'package:social/widgets/chat/action_bar.dart';
-import 'package:social/widgets/video/video_player.dart'; // Certifique-se de importar seu ActionBar
+import 'package:social/widgets/chat/full_screen.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -24,6 +25,7 @@ class ChatDetailScreen extends StatefulWidget {
     required this.chatId,
     required this.userId,
     super.key,
+    required bool isGroup,
   });
 
   @override
@@ -35,7 +37,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _messageController = TextEditingController();
   final _auth = FirebaseAuth.instance;
   final _record = AudioRecorder();
-  final ImagePicker _picker = ImagePicker();
   bool _isRecording = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   late Stream<QuerySnapshot> _messagesStream;
@@ -58,6 +59,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         .limit(20)
         .snapshots();
     _loadUserData();
+
+    _messagesStream.listen((querySnapshot) {
+      for (var doc in querySnapshot.docs) {
+        _checkAndMarkMessagesAsRead(doc.id);
+      }
+    });
 
     _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
       if (mounted) {
@@ -104,6 +111,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         'text': text,
         'sender_id': _auth.currentUser!.uid,
         'timestamp': Timestamp.now(),
+        'read': false,
       });
 
       await FirebaseFirestore.instance
@@ -141,13 +149,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         'audio': downloadUrl,
         'sender_id': _auth.currentUser!.uid,
         'timestamp': Timestamp.now(),
+        'read': false,
       });
 
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': 'Audio message',
+        'last_message': 'Mensagem de Áudio',
         'last_message_time': Timestamp.now(),
         'unread_count': FieldValue.increment(1),
       });
@@ -166,18 +175,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return Dialog(
-            child: isVideo
-                ? VideoPlayerWidget(url: url)
-                : CachedNetworkImage(
-                    imageUrl: url,
-                    placeholder: (context, url) =>
-                        const CircularProgressIndicator.adaptive(),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.error),
-                    fit: BoxFit.contain,
-                  ),
-          );
+          return FullScreenMedia(url: url, isVideo: isVideo);
         },
       );
     } else {
@@ -188,21 +186,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Future<void> _sendMedia(
-      {required bool fromGallery, required bool isVideo}) async {
-    final XFile? media = isVideo
-        ? await _picker.pickVideo(
-            source: fromGallery ? ImageSource.gallery : ImageSource.camera)
-        : await _picker.pickImage(
-            source: fromGallery ? ImageSource.gallery : ImageSource.camera,
-            imageQuality: 100);
-
-    if (media == null) return;
-
+  Future<void> _sendMedia({required bool fromGallery}) async {
     try {
-      final file = File(media.path);
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.media, // Permite fotos e vídeos
+        allowMultiple:
+            false, // Se quiser permitir seleção múltipla, mude para true
+      );
+
+      if (result == null || result.files.isEmpty) {
+        throw 'Nenhuma mídia selecionada';
+      }
+
+      final pickedFile = result.files.first;
+      final file = File(pickedFile.path!);
+
+      bool isVideo = pickedFile.extension == 'mp4' ||
+          pickedFile.extension == 'mov'; // Verifique se é vídeo ou imagem
       final storageRef = FirebaseStorage.instance.ref().child(
-          '${isVideo ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.${isVideo ? 'mp4' : 'jpg'}');
+          '${isVideo ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.${pickedFile.extension}');
       final uploadTask = storageRef.putFile(file);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
@@ -215,13 +217,64 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         isVideo ? 'video' : 'image': downloadUrl,
         'sender_id': _auth.currentUser!.uid,
         'timestamp': Timestamp.now(),
+        'read': false,
       });
 
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': isVideo ? 'Video message' : 'Image message',
+        'last_message': isVideo ? 'Vídeo' : 'Imagem',
+        'last_message_time': Timestamp.now(),
+        'unread_count': FieldValue.increment(1),
+      });
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> sendMedia({required bool fromGallery}) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.media, // Permite fotos e vídeos
+        allowMultiple:
+            true, // Se quiser permitir seleção múltipla, mude para true
+      );
+
+      if (result == null || result.files.isEmpty) {
+        throw 'Nenhuma mídia selecionada';
+      }
+
+      final pickedFile = result.files.first;
+      final file = File(pickedFile.path!);
+
+      bool isVideo = pickedFile.extension == 'mp4' ||
+          pickedFile.extension == 'mov'; // Verifique se é vídeo ou imagem
+      final storageRef = FirebaseStorage.instance.ref().child(
+          '${isVideo ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.${pickedFile.extension}');
+      final uploadTask = storageRef.putFile(file);
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .collection('messages')
+          .add({
+        isVideo ? 'video' : 'image': downloadUrl,
+        'sender_id': _auth.currentUser!.uid,
+        'timestamp': Timestamp.now(),
+        'read': false,
+      });
+
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .update({
+        'last_message': isVideo ? 'Vídeo' : 'Imagem',
         'last_message_time': Timestamp.now(),
         'unread_count': FieldValue.increment(1),
       });
@@ -326,7 +379,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _callScreen() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => CallScreen(
           channelName: widget.chatId,
           appId: '3d15be3b03ee48b1bb438ea848726a1e',
@@ -339,7 +392,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _callScreen2() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => VideoCallScreen(
           channelName: widget.chatId,
           appId: '3d15be3b03ee48b1bb438ea848726a1e',
@@ -384,15 +437,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<Widget> _buildVideoThumbnail(String videoUrl) async {
-    // Verifica se o URL do vídeo é válido
-    bool isNetworkUrl =
-        videoUrl.startsWith('http') || videoUrl.startsWith('https');
-    if (isNetworkUrl) {
-      return VideoPlayerWidget(url: videoUrl);
-    } else {
-      return const Icon(
-          Icons.error); // Exibe um ícone de erro se o URL não for válido
+    final uint8list = await VideoThumbnail.thumbnailData(
+      video: videoUrl,
+      imageFormat: ImageFormat.JPEG,
+      maxWidth: 512, // Tamanho máximo da largura da miniatura
+      quality: 100,
+    );
+
+    if (uint8list == null) {
+      return const Icon(Icons.error);
     }
+
+    return SizedBox(
+      width: 150,
+      height: 150,
+      child: Image.memory(
+        uint8list,
+        fit: BoxFit.cover,
+      ),
+    );
   }
 
   Future<void> _updateUserStatus(String status) async {
@@ -400,6 +463,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'status': status,
       'last_seen': Timestamp.now(),
+    });
+  }
+
+  void markMessageAsRead(String messageId) {
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({'read': true});
+  }
+
+  void _checkAndMarkMessagesAsRead(String messageId) {
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .doc(messageId)
+        .get()
+        .then((doc) {
+      if (doc.exists && !(doc.data()?['read'] ?? true)) {
+        // Atualiza o status da mensagem para lida
+        doc.reference.update({'read': true});
+      }
     });
   }
 
@@ -411,8 +498,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                 builder: (context) => ConversationDetailsScreen(
+                  chatId: widget.chatId,
                   userId: widget.userId,
                 ),
               ),
@@ -436,7 +524,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     Text(
                       _userData?['status'] == 'online'
                           ? 'Online'
-                          : 'Last seen: ${_userData?['last_seen']}',
+                          : 'Última vez visto: ${_userData?['last_seen']}',
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
@@ -472,6 +560,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         messageDoc.data() as Map<String, dynamic>;
                     final isMe =
                         messageData['sender_id'] == _auth.currentUser!.uid;
+                    final isRead = messageData['read'] ?? false;
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
@@ -509,6 +598,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                       ),
                                     ),
                                   ),
+                                isRead != null && isRead
+                                    ? const Stack(
+                                        children: [
+                                          Icon(Icons.check,
+                                              color: Colors.blue, size: 18),
+                                          Positioned(
+                                            left: 5,
+                                            child: Icon(Icons.check,
+                                                color: Colors.blue, size: 18),
+                                          ),
+                                        ],
+                                      )
+                                    : const Stack(
+                                        children: [
+                                          Icon(Icons.check,
+                                              color: Colors.grey, size: 18),
+                                          Positioned(
+                                            left: 5,
+                                            child: Icon(Icons.check,
+                                                color: Colors.grey, size: 18),
+                                          ),
+                                        ],
+                                      ),
                                 if (messageData['image'] != null)
                                   GestureDetector(
                                     onTap: () => _showMedia(
@@ -545,15 +657,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                               ConnectionState.waiting) {
                                             return const CircularProgressIndicator
                                                 .adaptive();
-                                          }
-                                          if (snapshot.hasData) {
-                                            return SizedBox(
-                                              width: 150,
-                                              height: 150,
-                                              child: snapshot.data!,
-                                            );
-                                          } else {
+                                          } else if (snapshot.hasData) {
+                                            // Agora passe o 'id' correto da mensagem, caso seja um campo de ID
+                                            _checkAndMarkMessagesAsRead(
+                                                messageDoc.id);
+                                            return snapshot.data!;
+                                          } else if (snapshot.hasError) {
                                             return const Icon(Icons.error);
+                                          } else {
+                                            return const Icon(
+                                                Icons.video_library);
                                           }
                                         },
                                       ),
@@ -630,20 +743,40 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
           if (_isRecording)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              color: Colors.redAccent,
-              child: const Text('Gravando...',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    spreadRadius: 2,
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'Gravando...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ActionBar(
             isRecording: _isRecording,
-            onCameraPressed: () =>
-                _sendMedia(fromGallery: false, isVideo: false),
-            onGalleryPressed: () =>
-                _sendMedia(fromGallery: true, isVideo: false),
-            onVideoPressed: () => _sendMedia(fromGallery: false, isVideo: true),
+            onCameraPressed: () => _sendMedia(
+                fromGallery:
+                    false),
+            onGalleryPressed: () => _sendMedia(
+                fromGallery:
+                    true),
+            onVideoPressed: () =>
+                _sendMedia(fromGallery: false),
             onRecordPressed: _isRecording ? _stopRecording : _startRecording,
             onSendMessage: _sendMessage,
             messageController: _messageController,

@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -28,8 +30,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     FirebaseFirestore.instance
         .collection('notifications')
         .where('user_id', isEqualTo: currentUser!.uid)
-        .where('is_notified',
-            isNotEqualTo: true) // Filtra notificações não visualizadas
+        .where('is_notified', isNotEqualTo: true)
         .snapshots()
         .listen((snapshot) {
       for (var doc in snapshot.docChanges) {
@@ -57,7 +58,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 body: notificationText,
                 notificationId: notificationId);
 
-            // Atualiza o campo 'is_notified' para true após exibir a notificação
             FirebaseFirestore.instance
                 .collection('notifications')
                 .doc(doc.doc.id)
@@ -78,7 +78,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Atividades'),
+        title: const Text(
+          'Atividades',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -97,73 +102,108 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           final notifications = snapshot.data!.docs;
 
-          return ListView.builder(
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notification =
-                  notifications[index].data() as Map<String, dynamic>;
-              final type = notification['type'];
-              final fromUserId = notification['from_user_id'];
-              final createdAt = notification['created_at'] as Timestamp;
+          // Organizar as notificações por data
+          final Map<String, List<Map<String, dynamic>>> groupedNotifications =
+              {};
+          for (var doc in notifications) {
+            final notification = doc.data() as Map<String, dynamic>;
+            final createdAt = notification['created_at'] as Timestamp;
+            final formattedDate = _formatDate(createdAt.toDate());
 
-              return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(fromUserId)
-                    .get(),
-                builder: (context, userSnapshot) {
-                  if (!userSnapshot.hasData) {
-                    return const CircularProgressIndicator();
-                  }
+            if (groupedNotifications[formattedDate] == null) {
+              groupedNotifications[formattedDate] = [];
+            }
+            groupedNotifications[formattedDate]!.add(notification);
+          }
 
-                  final userData =
-                      userSnapshot.data!.data() as Map<String, dynamic>;
-                  final fromUser = userData['username'] ?? 'Unknown';
-                  final profilePictureUrl = userData['profile_picture'] ?? '';
+          return ListView(
+            children: groupedNotifications.entries.map((entry) {
+              final date = entry.key;
+              final notifications = entry.value;
 
-                  return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: profilePictureUrl.isNotEmpty
-                            ? NetworkImage(profilePictureUrl)
-                            : null,
-                        child: profilePictureUrl.isEmpty
-                            ? const Icon(Icons.person)
-                            : null,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 16),
+                    child: Text(
+                      date,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.grey[700],
                       ),
-                      title: Text(_buildNotificationText(type, fromUser)),
-                      subtitle: Text(_formatTimestamp(createdAt)),
-                      onTap: () async {
-                        if (type == 'follow') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UserProfileScreen(
-                                userId: fromUserId,
-                                username: fromUser,
-                              ),
-                            ),
-                          );
-                        } else if (type == 'like' || type == 'comment') {
-                          final postId = notification[
-                              'post_id']; // Obter o postId da notificação
-                          if (postId != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PostDetailsScreen(postId: postId),
-                              ),
-                            );
-                          } else {
-                            if (kDebugMode) {
-                              print("Post ID not found in notification");
-                            }
-                          }
+                    ),
+                  ),
+                  Divider(height: 1, color: Colors.grey[300]),
+                  ...notifications.map((notification) {
+                    final type = notification['type'];
+                    final fromUserId = notification['from_user_id'];
+                    final createdAt = notification['created_at'] as Timestamp;
+
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(fromUserId)
+                          .get(),
+                      builder: (context, userSnapshot) {
+                        if (!userSnapshot.hasData) {
+                          return const CircularProgressIndicator();
                         }
-                      });
-                },
+
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>;
+                        final fromUser = userData['username'] ?? 'Unknown';
+                        final profilePictureUrl =
+                            userData['profile_picture'] ?? '';
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: profilePictureUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(profilePictureUrl)
+                                : null,
+                            child: profilePictureUrl.isEmpty
+                                ? const Icon(Icons.person)
+                                : null,
+                          ),
+                          title: Text(_buildNotificationText(type, fromUser)),
+                          subtitle: Text(_formatTimestamp(createdAt)),
+                          onTap: () async {
+                            if (type == 'follow') {
+                              Navigator.push(
+                                context,
+                                CupertinoPageRoute(
+                                  builder: (context) => UserProfileScreen(
+                                    userId: fromUserId,
+                                    username: fromUser,
+                                  ),
+                                ),
+                              );
+                            } else if (type == 'like' || type == 'comment') {
+                              final postId = notification['post_id'];
+                              if (postId != null) {
+                                Navigator.push(
+                                  context,
+                                  CupertinoPageRoute(
+                                    builder: (context) =>
+                                        PostDetailsScreen(postId: postId),
+                                  ),
+                                );
+                              } else {
+                                if (kDebugMode) {
+                                  print("Post ID not found in notification");
+                                }
+                              }
+                            }
+                          },
+                        );
+                      },
+                    );
+                  })
+                ],
               );
-            },
+            }).toList(),
           );
         },
       ),
@@ -195,5 +235,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } else {
       return '${difference.inDays} dias atrás';
     }
+  }
+
+  String _formatDate(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 }

@@ -1,5 +1,6 @@
 // lib/widgets/action_bar.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ActionBar extends StatefulWidget {
   final bool isRecording;
@@ -43,7 +44,7 @@ class _ActionBarState extends State<ActionBar> {
               ),
               ListTile(
                 leading: const Icon(Icons.video_call, color: Colors.blue),
-                title: const Text('Enviar um Vídeo'),
+                title: const Text('Gravar um Vídeo'),
                 onTap: widget.onVideoPressed,
               ),
               ListTile(
@@ -74,7 +75,7 @@ class _ActionBarState extends State<ActionBar> {
               child: TextField(
                 controller: widget.messageController,
                 decoration: InputDecoration(
-                  hintText: 'Digite sua mensagem...',
+                  hintText: AppLocalizations.of(context)!.hintText,
                   hintStyle: TextStyle(color: Colors.grey[600]),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),

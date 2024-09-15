@@ -1,6 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/screens/post/post.dart';
 import 'package:social/screens/story/story.dart';
@@ -16,7 +19,7 @@ class FeedScreen extends StatelessWidget {
   void _addPost(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => const PostScreen(),
       ),
     );
@@ -25,7 +28,7 @@ class FeedScreen extends StatelessWidget {
   void _addStory(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => const StoriesScreen(),
       ),
     );
@@ -44,7 +47,7 @@ class FeedScreen extends StatelessWidget {
     }
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) =>
             StoryDetailScreen(userId: userId), // Passando o userId
       ),
@@ -54,7 +57,7 @@ class FeedScreen extends StatelessWidget {
   void _openUserProfile(BuildContext context, String userId, String userName) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => UserProfileScreen(
           userId: userId,
           username: userName,
@@ -67,7 +70,12 @@ class FeedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Social'),
+        title: Text(
+          AppLocalizations.of(context)!.appName,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -85,6 +93,9 @@ class FeedScreen extends StatelessWidget {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('stories')
+                .where('created_at',
+                    isGreaterThanOrEqualTo:
+                        DateTime.now().subtract(const Duration(hours: 24)))
                 .orderBy('created_at', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
@@ -158,8 +169,7 @@ class FeedScreen extends StatelessWidget {
                                   child: CircleAvatar(
                                     radius: 40,
                                     backgroundImage: userPhoto.isNotEmpty
-                                        ? NetworkImage(userPhoto)
-                                            as ImageProvider
+                                        ? CachedNetworkImageProvider(userPhoto)
                                         : null,
                                     child: userPhoto.isEmpty
                                         ? const Icon(Icons.person, size: 40)
@@ -200,6 +210,7 @@ class FeedScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('posts')
                   .orderBy('created_at', descending: true)
+                  .limit(10)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -208,7 +219,8 @@ class FeedScreen extends StatelessWidget {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('Sem novas publicações.'));
+                  return Center(
+                      child: Text(AppLocalizations.of(context)!.chat));
                 }
 
                 final posts = snapshot.data!.docs;
@@ -225,12 +237,6 @@ class FeedScreen extends StatelessWidget {
                           .doc(userId)
                           .get(),
                       builder: (context, userSnapshot) {
-                        if (userSnapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                              child: CircularProgressIndicator.adaptive());
-                        }
-
                         if (!userSnapshot.hasData ||
                             !userSnapshot.data!.exists) {
                           return const SizedBox.shrink();
@@ -243,10 +249,10 @@ class FeedScreen extends StatelessWidget {
                             userData['profile_picture'] ?? '';
 
                         final postData = post.data() as Map<String, dynamic>?;
-                        final imageUrl = postData != null &&
-                                postData.containsKey('file_url')
-                            ? postData['file_url'] as String?
-                            : null;
+                        final imageUrl =
+                            postData != null && postData.containsKey('file_url')
+                                ? postData['file_url'] as String?
+                                : null;
 
                         return PostTile(
                           username: userName,

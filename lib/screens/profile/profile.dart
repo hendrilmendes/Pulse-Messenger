@@ -1,6 +1,11 @@
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:video_thumbnail/video_thumbnail.dart'; // Adicione isso
 import 'package:social/providers/auth_provider.dart';
 import 'package:social/screens/post_details/post_details.dart';
 import 'package:social/screens/settings/settings.dart';
@@ -11,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
   void _openSettings(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => const SettingsScreen(),
       ),
     );
@@ -20,12 +25,23 @@ class ProfileScreen extends StatelessWidget {
   void _openPost(BuildContext context, String postId) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => PostDetailsScreen(
           postId: postId,
         ),
       ),
     );
+  }
+
+  Future<String?> _generateVideoThumbnail(String videoUrl) async {
+    final filePath = await VideoThumbnail.thumbnailFile(
+      video: videoUrl,
+      thumbnailPath: (await getTemporaryDirectory()).path,
+      imageFormat: ImageFormat.JPEG,
+      maxWidth: 512,
+      quality: 100,
+    );
+    return filePath;
   }
 
   @override
@@ -41,7 +57,12 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Perfil'),
+        title: const Text(
+          'Perfil',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
         actions: [
           IconButton(
             onPressed: () => _openSettings(context),
@@ -74,14 +95,13 @@ class ProfileScreen extends StatelessWidget {
               // Profile Header
               Container(
                 padding: const EdgeInsets.all(16.0),
-                color: Colors.teal.shade100,
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.teal,
                       backgroundImage: profilePictureUrl.isNotEmpty
-                          ? NetworkImage(profilePictureUrl)
+                          ? CachedNetworkImageProvider(profilePictureUrl)
                           : null,
                       child: profilePictureUrl.isEmpty
                           ? Text(
@@ -105,7 +125,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            userData['bio'] ?? 'Adicionar uma bio...',
+                            userData['bio'] ?? 'Sem biografia...',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -121,7 +141,8 @@ class ProfileScreen extends StatelessWidget {
                                   if (postSnapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                        child: CircularProgressIndicator());
+                                        child: CircularProgressIndicator
+                                            .adaptive());
                                   }
 
                                   final postCount = postSnapshot.hasData
@@ -135,16 +156,15 @@ class ProfileScreen extends StatelessWidget {
                               StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
                                     .collection('following')
-                                    .doc(
-                                        userId)
-                                    .collection(
-                                        'userFollowing')
+                                    .doc(userId)
+                                    .collection('userFollowing')
                                     .snapshots(),
                                 builder: (context, followingSnapshot) {
                                   if (followingSnapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                        child: CircularProgressIndicator.adaptive());
+                                        child: CircularProgressIndicator
+                                            .adaptive());
                                   }
 
                                   final followingCount =
@@ -159,16 +179,15 @@ class ProfileScreen extends StatelessWidget {
                               StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
                                     .collection('followers')
-                                    .doc(
-                                        userId)
-                                    .collection(
-                                        'userFollowers')
+                                    .doc(userId)
+                                    .collection('userFollowers')
                                     .snapshots(),
                                 builder: (context, followerSnapshot) {
                                   if (followerSnapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                        child: CircularProgressIndicator());
+                                        child: CircularProgressIndicator
+                                            .adaptive());
                                   }
 
                                   final followerCount = followerSnapshot.hasData
@@ -198,7 +217,8 @@ class ProfileScreen extends StatelessWidget {
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(
+                          child: CircularProgressIndicator.adaptive());
                     }
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -211,29 +231,64 @@ class ProfileScreen extends StatelessWidget {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
-                        crossAxisSpacing: 4.0,
-                        mainAxisSpacing: 4.0,
+                        crossAxisSpacing: 4,
+                        mainAxisSpacing: 4,
                       ),
                       itemCount: posts.length,
                       itemBuilder: (context, index) {
                         final post = posts[index];
-                        final postData = post.data() as Map<String, dynamic>;
+                        final postData = post.data() as Map<String, dynamic>?;
+                        final postImage = postData?['file_url'] ?? '';
+                        final isVideo = _isVideo(postImage);
 
                         return GestureDetector(
                           onTap: () => _openPost(context, post.id),
-                          child: postData.containsKey('image_url')
-                              ? Image.network(
-                                  postData['image_url'],
-                                  fit: BoxFit.cover,
-                                )
-                              : Container(
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(
-                                    Icons.image,
-                                    color: Colors.grey,
-                                    size: 50,
+                          child: Stack(
+                            children: [
+                              FutureBuilder<String?>(
+                                future: isVideo ? _generateVideoThumbnail(postImage) : null,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return const Center(child: CircularProgressIndicator());
+                                  }
+
+                                  final thumbnailPath = snapshot.data;
+
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      image: postImage.isNotEmpty
+                                          ? DecorationImage(
+                                              image: isVideo && thumbnailPath != null
+                                                  ? FileImage(File(thumbnailPath))
+                                                  : CachedNetworkImageProvider(postImage),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.grey[300]!),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (isVideo)
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
+                            ],
+                          ),
                         );
                       },
                     );
@@ -245,6 +300,10 @@ class ProfileScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  bool _isVideo(String url) {
+    return url.contains(".mp4") || url.contains(".mov") || url.contains(".avi");
   }
 
   String getInitials(String name) {
@@ -266,16 +325,4 @@ class ProfileScreen extends StatelessWidget {
       ],
     );
   }
-}
-
-Widget buildStatColumn(String label, String count) {
-  return Column(
-    children: [
-      Text(
-        count,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      Text(label, style: const TextStyle(color: Colors.grey)),
-    ],
-  );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class StoryActionBar extends StatefulWidget {
   final TextEditingController storyController;
@@ -30,7 +31,7 @@ class _StoryActionBarState extends State<StoryActionBar> {
               child: TextField(
                 controller: widget.storyController,
                 decoration: InputDecoration(
-                  hintText: 'O que está pensando?',
+                  hintText: AppLocalizations.of(context)!.hintTextMomment,
                   hintStyle: TextStyle(color: Colors.grey[600]),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),

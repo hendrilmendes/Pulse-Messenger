@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -150,7 +151,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   )
                 : const Center(
                     child: Text(
-                      'Aguardando o usuário remoto entrar...',
+                      'Chamando...',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -188,7 +189,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     CircleAvatar(
                       radius: 20,
                       backgroundImage: _remoteUserPhotoUrl.isNotEmpty
-                          ? NetworkImage(_remoteUserPhotoUrl)
+                          ? CachedNetworkImageProvider(_remoteUserPhotoUrl)
                           : const AssetImage('assets/default_avatar.png')
                               as ImageProvider,
                     ),

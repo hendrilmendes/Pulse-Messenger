@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -139,8 +140,12 @@ class _CallScreenState extends State<CallScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        title: const Text('Chamada de Voz'),
+        title: const Text(
+          'Chamada de Voz',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
       ),
       body: Center(
         child: _remoteUid != null
@@ -150,7 +155,7 @@ class _CallScreenState extends State<CallScreen> {
                   CircleAvatar(
                     radius: 60,
                     backgroundImage: _remoteUserPhotoUrl != null
-                        ? NetworkImage(_remoteUserPhotoUrl!)
+                        ? CachedNetworkImageProvider(_remoteUserPhotoUrl!)
                         : const NetworkImage(
                             'https://www.example.com/default_profile.jpg'),
                     backgroundColor: Colors.grey[800],
@@ -173,7 +178,7 @@ class _CallScreenState extends State<CallScreen> {
                 ],
               )
             : const Text(
-                'Aguardando o usuário remoto entrar...',
+                'Chamando...',
                 style: TextStyle(
                   fontSize: 18,
                 ),

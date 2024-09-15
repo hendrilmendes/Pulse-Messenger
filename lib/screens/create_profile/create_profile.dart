@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -94,7 +95,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Complete seu Perfil')),
+      appBar: AppBar(
+        title: const Text(
+          'Complete seu Perfil',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -107,7 +115,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: _profileImageUrl != null
-                        ? NetworkImage(_profileImageUrl!)
+                        ? CachedNetworkImageProvider(_profileImageUrl!)
                         : const AssetImage('assets/placeholder.png')
                             as ImageProvider,
                   ),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -73,7 +74,12 @@ class _CommentsScreenState extends State<CommentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Comentários'),
+        title: const Text(
+          'Comentários',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0.5,
         automaticallyImplyLeading: false,
       ),
       body: Column(
@@ -116,7 +122,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
                             backgroundImage:
                                 commentData['user_photo'] != null &&
                                         commentData['user_photo'] != ''
-                                    ? NetworkImage(commentData['user_photo'])
+                                    ? CachedNetworkImageProvider(
+                                        commentData['user_photo'])
                                     : null,
                             child: commentData['user_photo'] == null ||
                                     commentData['user_photo'] == ''
