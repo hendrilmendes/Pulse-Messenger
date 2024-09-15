@@ -1,15 +1,24 @@
-Changelog Social
+Changelog
 ======================================================
 
-#### v*.*.*
-Novo:
-- Suporte ao modo escuro
+## [*.*.*]
 
-Correções/Melhorias
+## Alterações
+
+### Correções
+
 - Melhorias no carregamento dos conteúdos
 - Correções de bugs
 - Ajustes visuais
 
+### Features
+
+- Suporte ao modo escuro
+
 ======================================================
-#### v0.0.10-alpha
-- Primeira Versão
+
+## [0.1.0]
+
+## Alterações
+
+- Primeira versão
