@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +5,11 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/screens/post/post.dart';
 import 'package:social/screens/story/story.dart';
-import 'package:social/screens/story_details/story_details.dart';
-import 'package:social/screens/user_profile/user_profile.dart';
+import 'package:social/screens/story/story_details/story_details.dart';
+import 'package:social/screens/profile/user_profile/user_profile.dart';
 import 'package:social/widgets/feed/post_tiles.dart';
+import 'package:social/widgets/feed/shimmer_post.dart';
+import 'package:social/widgets/feed/shimmer_story.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key, required this.currentUserId});
@@ -46,10 +46,10 @@ class FeedScreen extends StatelessWidget {
       });
     }
     Navigator.push(
+      // ignore: use_build_context_synchronously
       context,
       CupertinoPageRoute(
-        builder: (context) =>
-            StoryDetailScreen(userId: userId), // Passando o userId
+        builder: (context) => StoryDetailScreen(userId: userId),
       ),
     );
   }
@@ -87,189 +87,215 @@ class FeedScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Stories Section
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('stories')
-                .where('created_at',
-                    isGreaterThanOrEqualTo:
-                        DateTime.now().subtract(const Duration(hours: 24)))
-                .orderBy('created_at', descending: true)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                    child: CircularProgressIndicator.adaptive());
-              }
-
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const SizedBox.shrink();
-              }
-
-              final stories = snapshot.data!.docs;
-
-              // Agrupar histórias por usuário
-              final groupedStories = <String, List<DocumentSnapshot>>{};
-              for (var story in stories) {
-                final userId = story['user_id'];
-                if (!groupedStories.containsKey(userId)) {
-                  groupedStories[userId] = [];
-                }
-                groupedStories[userId]!.add(story);
-              }
-
-              return SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: groupedStories.keys.length,
-                  itemBuilder: (context, index) {
-                    final userId = groupedStories.keys.elementAt(index);
-                    final userStories = groupedStories[userId]!;
-
-                    final story = userStories.first;
-                    final userName = story['username'] ?? 'Unknown';
-                    final userPhoto = story['user_photo'] ?? '';
-
-                    // Verifique se o campo 'viewed_by' existe e se contém o ID do usuário
-                    final storyData = story.data() as Map<String, dynamic>?;
-
-                    final viewedBy = storyData != null &&
-                            storyData.containsKey('viewed_by')
-                        ? (storyData['viewed_by'] as List<dynamic>?)
-                        : <dynamic>[]; // Valor padrão se o campo não existir
-
-                    final isNew =
-                        viewedBy != null && !viewedBy.contains(currentUserId);
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: GestureDetector(
-                        onTap: () =>
-                            _openStory(context, userId, story.id, isNew),
-                        child: Stack(
-                          children: [
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isNew
-                                          ? Colors.blue
-                                          : Colors.transparent,
-                                      width: 3,
-                                    ),
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 40,
-                                    backgroundImage: userPhoto.isNotEmpty
-                                        ? CachedNetworkImageProvider(userPhoto)
-                                        : null,
-                                    child: userPhoto.isEmpty
-                                        ? const Icon(Icons.person, size: 40)
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    userName,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+      body: CustomScrollView(
+        slivers: [
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 16.0),
           ),
 
-          // Posts Feed
-          Expanded(
+          // Stories Section
+          SliverToBoxAdapter(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('posts')
+                  .collection('stories')
+                  .where('created_at',
+                      isGreaterThanOrEqualTo:
+                          DateTime.now().subtract(const Duration(hours: 24)))
                   .orderBy('created_at', descending: true)
-                  .limit(10)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator.adaptive());
+                  return SizedBox(
+                    height: 120,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        return buildShimmerStory();
+                      },
+                    ),
+                  );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                      child: Text(AppLocalizations.of(context)!.chat));
+                  return const SizedBox.shrink();
                 }
 
-                final posts = snapshot.data!.docs;
+                final stories = snapshot.data!.docs;
 
-                return ListView.builder(
-                  itemCount: posts.length,
-                  itemBuilder: (context, index) {
-                    final post = posts[index];
-                    final userId = post['user_id'];
+                // Agrupar histórias por usuário
+                final groupedStories = <String, List<DocumentSnapshot>>{};
+                for (var story in stories) {
+                  final userId = story['user_id'];
+                  if (!groupedStories.containsKey(userId)) {
+                    groupedStories[userId] = [];
+                  }
+                  groupedStories[userId]!.add(story);
+                }
 
-                    return FutureBuilder<DocumentSnapshot>(
-                      future: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(userId)
-                          .get(),
-                      builder: (context, userSnapshot) {
-                        if (!userSnapshot.hasData ||
-                            !userSnapshot.data!.exists) {
-                          return const SizedBox.shrink();
-                        }
+                return SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: groupedStories.keys.length,
+                    itemBuilder: (context, index) {
+                      final userId = groupedStories.keys.elementAt(index);
+                      final userStories = groupedStories[userId]!;
 
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>;
-                        final userName = userData['username'] ?? 'Unknown';
-                        final userProfilePicture =
-                            userData['profile_picture'] ?? '';
+                      final story = userStories.first;
+                      final userName = story['username'] ?? 'Unknown';
+                      final userPhoto = story['user_photo'] ?? '';
 
-                        final postData = post.data() as Map<String, dynamic>?;
-                        final imageUrl =
-                            postData != null && postData.containsKey('file_url')
+                      // Verifique se o campo 'viewed_by' existe e se contém o ID do usuário
+                      final storyData = story.data() as Map<String, dynamic>?;
+
+                      final viewedBy = storyData != null &&
+                              storyData.containsKey('viewed_by')
+                          ? (storyData['viewed_by'] as List<dynamic>?)
+                          : <dynamic>[]; // Valor padrão se o campo não existir
+
+                      final isNew =
+                          viewedBy != null && !viewedBy.contains(currentUserId);
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: GestureDetector(
+                          onTap: () =>
+                              _openStory(context, userId, story.id, isNew),
+                          child: Stack(
+                            children: [
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 80,
+                                    height: 80,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isNew
+                                            ? Colors.blue
+                                            : Colors.transparent,
+                                        width: 3,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 40,
+                                      backgroundImage: userPhoto.isNotEmpty
+                                          ? CachedNetworkImageProvider(
+                                              userPhoto)
+                                          : null,
+                                      child: userPhoto.isEmpty
+                                          ? const Icon(Icons.person, size: 40)
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    width: 80,
+                                    child: Text(
+                                      userName,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Posts Feed
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('posts')
+                      .orderBy('created_at', descending: true)
+                      .limit(10)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return SizedBox(
+                        height: 200, // Adjust height based on your needs
+                        child: ListView.builder(
+                          itemCount: 5,
+                          itemBuilder: (context, index) {
+                            return buildShimmerPost();
+                          },
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                          child: Text(AppLocalizations.of(context)!.noResult));
+                    }
+
+                    final posts = snapshot.data!.docs;
+
+                    return Column(
+                      children: posts.map((post) {
+                        final userId = post['user_id'];
+
+                        return FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userId)
+                              .get(),
+                          builder: (context, userSnapshot) {
+                            if (!userSnapshot.hasData ||
+                                !userSnapshot.data!.exists) {
+                              return const SizedBox.shrink();
+                            }
+
+                            final userData = userSnapshot.data!.data()
+                                as Map<String, dynamic>;
+                            final userName = userData['username'] ?? 'Unknown';
+                            final userProfilePicture =
+                                userData['profile_picture'] ?? '';
+
+                            final postData =
+                                post.data() as Map<String, dynamic>?;
+                            final imageUrl = postData != null &&
+                                    postData.containsKey('file_url')
                                 ? postData['file_url'] as String?
                                 : null;
 
-                        return PostTile(
-                          username: userName,
-                          userProfilePicture: userProfilePicture,
-                          content: post['content'],
-                          createdAt: post['created_at'].toDate(),
-                          imageUrl: imageUrl,
-                          postId: post.id,
-                          onProfileTap: () =>
-                              _openUserProfile(context, userId, userName),
-                          currentUserId: currentUserId,
+                            return PostTile(
+                              username: userName,
+                              userProfilePicture: userProfilePicture,
+                              content: post['content'],
+                              createdAt: post['created_at'].toDate(),
+                              imageUrl: imageUrl,
+                              postId: post.id,
+                              onProfileTap: () =>
+                                  _openUserProfile(context, userId, userName),
+                              currentUserId: currentUserId,
+                            );
+                          },
                         );
-                      },
+                      }).toList(),
                     );
                   },
                 );
               },
+              childCount: 1, // Este número pode ser ajustado se necessário
             ),
           ),
         ],

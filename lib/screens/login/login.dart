@@ -4,9 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social/providers/auth_provider.dart';
-import 'package:social/screens/create_profile/create_profile.dart';
+import 'package:social/screens/profile/create_profile/create_profile.dart';
 import 'package:social/screens/home/home.dart';
-import 'package:social/screens/register/register.dart';
+import 'package:social/screens/login/register/register.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();

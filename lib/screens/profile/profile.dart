@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:social/widgets/profile/shimmer_profile.dart';
 import 'package:video_thumbnail/video_thumbnail.dart'; // Adicione isso
 import 'package:social/providers/auth_provider.dart';
-import 'package:social/screens/post_details/post_details.dart';
+import 'package:social/screens/post/post_details/post_details.dart';
 import 'package:social/screens/settings/settings.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -77,7 +78,11 @@ class ProfileScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, userSnapshot) {
           if (userSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: ShimmerProfileWidget.rectangular(
+                height: 200,
+              ),
+            );
           }
 
           if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
@@ -104,13 +109,18 @@ class ProfileScreen extends StatelessWidget {
                           ? CachedNetworkImageProvider(profilePictureUrl)
                           : null,
                       child: profilePictureUrl.isEmpty
-                          ? Text(
-                              initials,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold),
-                            )
+                          ? initials.isNotEmpty
+                              ? Text(
+                                  initials,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
+                                )
+                              : const ShimmerProfileWidget.circular(
+                                  height: 50,
+                                  width: 50,
+                                )
                           : null,
                     ),
                     const SizedBox(width: 16),
@@ -145,9 +155,22 @@ class ProfileScreen extends StatelessWidget {
                                             .adaptive());
                                   }
 
-                                  final postCount = postSnapshot.hasData
-                                      ? postSnapshot.data!.docs.length
-                                      : 0;
+                                  if (!postSnapshot.hasData ||
+                                      postSnapshot.data!.docs.isEmpty) {
+                                    return _buildStatColumn('Posts', '0');
+                                  }
+
+                                  // Contar postagens com URLs de mídia válidas
+                                  final postCount =
+                                      postSnapshot.data!.docs.where((doc) {
+                                    final postData =
+                                        doc.data() as Map<String, dynamic>?;
+                                    final fileUrl = postData?['file_url'] ?? '';
+                                    return fileUrl.isNotEmpty &&
+                                        (fileUrl.contains('.jpg') ||
+                                            fileUrl.contains('.png') ||
+                                            fileUrl.contains('.mp4'));
+                                  }).length;
 
                                   return _buildStatColumn(
                                       'Posts', postCount.toString());
@@ -221,11 +244,21 @@ class ProfileScreen extends StatelessWidget {
                           child: CircularProgressIndicator.adaptive());
                     }
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text('Nenhuma postagem.'));
-                    }
+                    // Filtra os posts que possuem um 'file_url' válido
+                    final postsWithMedia = snapshot.data!.docs.where((post) {
+                      final postData = post.data() as Map<String, dynamic>?;
+                      final postImage = postData?['file_url'] ?? '';
+                      return postImage.isNotEmpty;
+                    }).toList();
 
-                    final posts = snapshot.data!.docs;
+                    if (postsWithMedia.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'Nenhum postagem encontrada.',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      );
+                    }
 
                     return GridView.builder(
                       gridDelegate:
@@ -234,9 +267,9 @@ class ProfileScreen extends StatelessWidget {
                         crossAxisSpacing: 4,
                         mainAxisSpacing: 4,
                       ),
-                      itemCount: posts.length,
+                      itemCount: postsWithMedia.length,
                       itemBuilder: (context, index) {
-                        final post = posts[index];
+                        final post = postsWithMedia[index];
                         final postData = post.data() as Map<String, dynamic>?;
                         final postImage = postData?['file_url'] ?? '';
                         final isVideo = _isVideo(postImage);
@@ -245,32 +278,50 @@ class ProfileScreen extends StatelessWidget {
                           onTap: () => _openPost(context, post.id),
                           child: Stack(
                             children: [
-                              FutureBuilder<String?>(
-                                future: isVideo ? _generateVideoThumbnail(postImage) : null,
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const Center(child: CircularProgressIndicator());
-                                  }
+                              isVideo
+                                  ? FutureBuilder<String?>(
+                                      future:
+                                          _generateVideoThumbnail(postImage),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Center(
+                                              child:
+                                                  CircularProgressIndicator());
+                                        }
 
-                                  final thumbnailPath = snapshot.data;
-
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      image: postImage.isNotEmpty
-                                          ? DecorationImage(
-                                              image: isVideo && thumbnailPath != null
-                                                  ? FileImage(File(thumbnailPath))
-                                                  : CachedNetworkImageProvider(postImage),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey[300]!),
+                                        final thumbnailPath = snapshot.data;
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            image: thumbnailPath != null
+                                                ? DecorationImage(
+                                                    image: FileImage(
+                                                        File(thumbnailPath)),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
+                                            color: Colors.grey[200],
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: Colors.grey[300]!),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      decoration: BoxDecoration(
+                                        image: DecorationImage(
+                                          image: CachedNetworkImageProvider(
+                                              postImage),
+                                          fit: BoxFit.cover,
+                                        ),
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: Colors.grey[300]!),
+                                      ),
                                     ),
-                                  );
-                                },
-                              ),
                               if (isVideo)
                                 Positioned(
                                   bottom: 8,

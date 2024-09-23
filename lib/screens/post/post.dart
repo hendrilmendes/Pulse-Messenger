@@ -26,7 +26,7 @@ class _PostScreenState extends State<PostScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   final ImagePicker _picker = ImagePicker();
-  String? _fileType; // 'image' or 'video'
+  String? _fileType;
 
   Future<void> _showPickOptions() async {
     showModalBottomSheet(
@@ -92,13 +92,10 @@ class _PostScreenState extends State<PostScreen> {
         if (mounted) {
           final aspectRatio = _videoPlayerController!.value.aspectRatio;
 
-          // Ajuste para vídeos em modo retrato
           double adjustedAspectRatio;
           if (aspectRatio > 1) {
-            // Vídeo em paisagem
             adjustedAspectRatio = aspectRatio;
           } else {
-            // Vídeo em retrato (rotacionar)
             adjustedAspectRatio = 1 / aspectRatio;
           }
 
@@ -156,7 +153,7 @@ class _PostScreenState extends State<PostScreen> {
       return;
     }
 
-    if (!_formKey.currentState!.validate() || _selectedFile == null) return;
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isSubmitting = true;
@@ -173,7 +170,10 @@ class _PostScreenState extends State<PostScreen> {
       final username = userData?['username'] ?? 'Anonymous';
       final userPhotoUrl = userData?['profile_picture'] ?? '';
 
-      final fileUrl = await _uploadFile(_selectedFile!);
+      String? fileUrl;
+      if (_selectedFile != null) {
+        fileUrl = await _uploadFile(_selectedFile!);
+      }
 
       await FirebaseFirestore.instance.collection('posts').add({
         'content': content,
@@ -270,12 +270,53 @@ class _PostScreenState extends State<PostScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              GestureDetector(
+                onTap: _showPickOptions,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                    image: _selectedFile != null
+                        ? DecorationImage(
+                            image: FileImage(_selectedFile!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _selectedFile == null
+                      ? Center(
+                          child: Text(
+                            AppLocalizations.of(context)!.selectFile,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        )
+                      : _fileType == 'video' && _chewieController != null
+                          ? Chewie(
+                              controller: _chewieController!,
+                            )
+                          : _fileType == 'image'
+                              ? Image.file(
+                                  _selectedFile!,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(),
+                ),
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _contentController,
                 decoration: InputDecoration(
                   labelText: AppLocalizations.of(context)!.content,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.content_paste),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  prefixIcon:
+                      const Icon(Icons.content_paste, color: Colors.blue),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -285,87 +326,21 @@ class _PostScreenState extends State<PostScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              Stack(
-                children: [
-                  GestureDetector(
-                    onTap: _showPickOptions,
-                    child: Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: _selectedFile == null
-                          ? Center(
-                              child: Icon(Icons.camera_alt,
-                                  size: 50, color: Colors.grey[700]),
-                            )
-                          : _fileType == 'image'
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(_selectedFile!,
-                                      fit: BoxFit.cover),
-                                )
-                              : _fileType == 'video' &&
-                                      _chewieController != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Chewie(
-                                        controller: _chewieController!,
-                                      ),
-                                    )
-                                  : const Center(
-                                      child:
-                                          CircularProgressIndicator.adaptive()),
-                    ),
-                  ),
-                  if (_selectedFile != null)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            _selectedFile = null;
-                            _fileType = null;
-                            if (_videoPlayerController != null) {
-                              _videoPlayerController!.dispose();
-                              _videoPlayerController = null;
-                            }
-                            if (_chewieController != null) {
-                              _chewieController!.dispose();
-                              _chewieController = null;
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (_isSubmitting && _uploadProgress < 1.0)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: LinearProgressIndicator(
+              if (_isSubmitting)
+                Center(
+                  child: CircularProgressIndicator(
                     value: _uploadProgress,
-                    backgroundColor: Colors.grey[200],
-                    color: Colors.blue,
+                    backgroundColor: Colors.grey.shade300,
                   ),
                 ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitPost,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  minimumSize: const Size(double.infinity, 50),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 18),
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator.adaptive(),
-                      )
-                    : Text(AppLocalizations.of(context)!.post),
+                child: Text(AppLocalizations.of(context)!.post),
               ),
             ],
           ),

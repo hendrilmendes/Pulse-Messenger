@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/screens/comments/comments.dart';
+import 'package:social/screens/shared/shared.dart';
 import 'package:social/widgets/video/video_player.dart';
 
 class PostDetailsScreen extends StatelessWidget {
@@ -78,6 +79,48 @@ class PostDetailsScreen extends StatelessWidget {
     );
   }
 
+  void _showShareOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (BuildContext context, ScrollController controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: ListView(
+                controller: controller,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.9,
+                    width: MediaQuery.of(context).size.width,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: ShareOptionsScreen(postId: postId),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<int> _getCommentsCount(String postId) async {
     final commentsSnapshot = await FirebaseFirestore.instance
         .collection('posts')
@@ -117,7 +160,8 @@ class PostDetailsScreen extends StatelessWidget {
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator.adaptive());
+                      return const Center(
+                          child: CircularProgressIndicator.adaptive());
                     }
 
                     if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -159,7 +203,8 @@ class PostDetailsScreen extends StatelessWidget {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                            child: CircularProgressIndicator.adaptive());
                       }
 
                       if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -263,9 +308,8 @@ class PostDetailsScreen extends StatelessWidget {
                                     const Spacer(),
                                     IconButton(
                                       icon: const Icon(Icons.share),
-                                      onPressed: () {
-                                        // Add share logic here
-                                      },
+                                      onPressed: () =>
+                                          _showShareOptions(context),
                                     ),
                                   ],
                                 ),

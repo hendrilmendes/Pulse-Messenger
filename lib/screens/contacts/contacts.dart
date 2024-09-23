@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:social/screens/chat_details/chat_details.dart';
-import 'package:social/screens/group_create/grupo_create.dart';
+import 'package:social/screens/chat/chat_details/chat_details.dart';
+import 'package:social/screens/group/group_create/grupo_create.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -17,6 +17,38 @@ class ContactsScreen extends StatefulWidget {
 class _ContactsScreenState extends State<ContactsScreen> {
   List<String> selectedContacts = [];
   bool isSelecting = false;
+  List<String> chatUserIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChatUsers();
+  }
+
+  Future<void> _loadChatUsers() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    final chatQuery = await FirebaseFirestore.instance
+        .collection('chats')
+        .where('participants', arrayContains: currentUserId)
+        .get();
+
+    final Set<String> uniqueUserIds = {};
+
+    for (var chat in chatQuery.docs) {
+      final participants = chat['participants'] as List<dynamic>;
+      for (var participant in participants) {
+        if (participant != currentUserId) {
+          uniqueUserIds.add(participant);
+        }
+      }
+    }
+
+    setState(() {
+      chatUserIds = uniqueUserIds.toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +84,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId,
+                whereIn: chatUserIds.isNotEmpty ? chatUserIds : ['placeholder'])
+            .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData || chatUserIds.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 

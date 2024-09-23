@@ -5,9 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:social/screens/user_profile/user_profile.dart';
-import 'package:social/screens/post_details/post_details.dart';
+import 'package:social/screens/profile/user_profile/user_profile.dart';
+import 'package:social/screens/post/post_details/post_details.dart';
 import 'package:social/widgets/search/search.dart';
+import 'package:social/widgets/search/shimmer_search.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -20,17 +21,22 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isSearchingUsers = false;
+  final ValueNotifier<bool> _isSearchingUsers = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {
-        final query = _searchController.text;
-        _isSearchingUsers = query.isNotEmpty;
-      });
+      final query = _searchController.text;
+      _isSearchingUsers.value = query.isNotEmpty;
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _isSearchingUsers.dispose();
+    super.dispose();
   }
 
   Future<String?> _generateVideoThumbnail(String videoUrl) async {
@@ -77,23 +83,31 @@ class _SearchScreenState extends State<SearchScreen> {
         centerTitle: true,
         elevation: 0.5,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: SearchBarWidget(
-            searchQuery: _searchController.text,
-            onSearchChanged: (query) {
-              setState(() {
-                _searchController.text = query;
-                _isSearchingUsers = query.isNotEmpty;
-              });
-            },
+          preferredSize: const Size.fromHeight(80),
+          child: Column(
+            children: [
+              SearchBarWidget(
+                searchQuery: _searchController.text,
+                onSearchChanged: (query) {
+                  _searchController.text = query;
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
-      body: _searchController.text.isEmpty
-          ? _buildPostSearchResults()
-          : _isSearchingUsers
+      body: ValueListenableBuilder<bool>(
+        valueListenable: _isSearchingUsers,
+        builder: (context, isSearching, child) {
+          if (_searchController.text.isEmpty) {
+            return _buildPostSearchResults();
+          }
+          return isSearching
               ? _buildUserSearchResults()
-              : _buildPostSearchResults(),
+              : _buildPostSearchResults();
+        },
+      ),
     );
   }
 
@@ -105,7 +119,21 @@ class _SearchScreenState extends State<SearchScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator.adaptive());
+          return GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
+            ),
+            itemCount: 9,
+            itemBuilder: (context, index) {
+              return const ShimmerSearchWidget(
+                height: 100,
+                width: 100,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              );
+            },
+          );
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -117,7 +145,21 @@ class _SearchScreenState extends State<SearchScreen> {
           );
         }
 
-        final posts = snapshot.data!.docs;
+        // Filtra os posts que possuem um 'file_url' válido
+        final postsWithMedia = snapshot.data!.docs.where((post) {
+          final postData = post.data() as Map<String, dynamic>?;
+          final postImage = postData?['file_url'] ?? '';
+          return postImage.isNotEmpty;
+        }).toList();
+
+        if (postsWithMedia.isEmpty) {
+          return const Center(
+            child: Text(
+              'Nenhum post com mídia encontrado.',
+              style: TextStyle(fontSize: 18),
+            ),
+          );
+        }
 
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -125,9 +167,9 @@ class _SearchScreenState extends State<SearchScreen> {
             crossAxisSpacing: 4,
             mainAxisSpacing: 4,
           ),
-          itemCount: posts.length,
+          itemCount: postsWithMedia.length,
           itemBuilder: (context, index) {
-            final post = posts[index];
+            final post = postsWithMedia[index];
             final postData = post.data() as Map<String, dynamic>?;
             final postImage = postData?['file_url'] ?? '';
             final isVideo = _isVideo(postImage);
@@ -136,32 +178,43 @@ class _SearchScreenState extends State<SearchScreen> {
               onTap: () => _openPost(context, post.id),
               child: Stack(
                 children: [
-                  FutureBuilder<String?>(
-                    future: isVideo ? _generateVideoThumbnail(postImage) : null,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                  isVideo
+                      ? FutureBuilder<String?>(
+                          future: _generateVideoThumbnail(postImage),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
 
-                      final thumbnailPath = snapshot.data;
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          image: postImage.isNotEmpty
-                              ? DecorationImage(
-                                  image: isVideo && thumbnailPath != null
-                                      ? FileImage(File(thumbnailPath))
-                                      : CachedNetworkImageProvider(postImage),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
+                            final thumbnailPath = snapshot.data;
+                            return Container(
+                              decoration: BoxDecoration(
+                                image: thumbnailPath != null
+                                    ? DecorationImage(
+                                        image: FileImage(File(thumbnailPath)),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: CachedNetworkImageProvider(postImage),
+                              fit: BoxFit.cover,
+                            ),
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
                         ),
-                      );
-                    },
-                  ),
                   if (isVideo)
                     Positioned(
                       bottom: 8,

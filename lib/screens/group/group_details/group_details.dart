@@ -2,13 +2,12 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:social/screens/group/group.dart';
+import 'package:social/screens/group/group_edit/group_edit.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final bool isGroup;
@@ -100,7 +99,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     Navigator.pop(context);
   }
 
-  Future<void> _pickImage() async {
+  Future<void> pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
@@ -127,60 +126,50 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     }
   }
 
-  void _showEditGroupDialog() {
-    final nameController = TextEditingController(
-      text: groupData.data()?['group_name'] ?? '',
-    );
-    final descriptionController = TextEditingController(
-      text: groupData.data()?['group_description'] ?? '',
-    );
-
-    showDialog(
+  void _editGroup(BuildContext context) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar Grupo'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do Grupo',
+      isScrollControlled: true,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.7,
+          expand: false,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: ListView(
+                controller: controller,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.9,
+                    width: MediaQuery.of(context).size.width,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: EditGroupScreen(
+                        chatId: widget.chatId,
+                        currentGroupName: groupData.data()?['group_name'] ?? '',
+                        currentGroupDescription:
+                            groupData.data()?['group_description'] ?? '',
+                        currentGroupPhotoUrl:
+                            groupData.data()?['group_image'] ?? '',
+                      ),
+                    ),
                   ),
-                ),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrição',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _pickImage,
-                  child: const Text('Escolher Imagem'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                _updateGroupData(
-                  name: nameController.text,
-                  description: descriptionController.text,
-                  photoUrl: groupData.data()?['group_photo_url'] ?? '',
-                );
-                Navigator.pop(context);
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -199,7 +188,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: _showEditGroupDialog,
+            onPressed: () {
+              _editGroup(context);
+            },
           ),
         ],
       ),
@@ -335,31 +326,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.message),
-                        label: const Text('Enviar Mensagem'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            CupertinoPageRoute(
-                              builder: (context) => GroupChatScreen(
-                                chatId: widget.chatId,
-                                userId: widget.userId,
-                                isGroup: widget.isGroup,
-                              ),
-                            ),
-                          );
-                        },
+                  if (widget.isGroup)
+                    ElevatedButton.icon(
+                      onPressed: _leaveGroup,
+                      icon: const Icon(Icons.exit_to_app),
+                      label: const Text('Sair do Grupo'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red,
                       ),
-                      ElevatedButton(
-                        onPressed: _leaveGroup,
-                        child: const Text('Sair do Grupo'),
-                      ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),

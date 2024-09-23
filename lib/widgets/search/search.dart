@@ -77,7 +77,6 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[200],
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 prefixIcon: const Icon(Icons.search, color: Colors.blue),

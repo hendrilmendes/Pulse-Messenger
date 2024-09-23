@@ -5,6 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:social/providers/locale_provider.dart';
 import 'package:social/providers/theme_provider.dart';
@@ -27,7 +28,7 @@ void main() async {
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()!
       .requestNotificationsPermission();
-      
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => LocaleProvider(),
@@ -82,15 +83,20 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer3<ThemeModel, LocaleProvider, AuthProvider>(
         builder: (_, themeModel, localeProvider, authProvider, __) {
-
           return MaterialApp(
               theme: ThemeData(
                 brightness: Brightness.light,
                 useMaterial3: true,
+                textTheme: Typography()
+                    .black
+                    .apply(fontFamily: GoogleFonts.robotoFlex().fontFamily),
               ),
               darkTheme: ThemeData(
                 brightness: Brightness.dark,
                 useMaterial3: true,
+                textTheme: Typography()
+                    .white
+                    .apply(fontFamily: GoogleFonts.robotoFlex().fontFamily),
               ),
               themeMode: _getThemeMode(themeModel.themeMode),
               locale: localeProvider.locale,

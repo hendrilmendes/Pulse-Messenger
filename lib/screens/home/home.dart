@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,7 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   late String currentUserId;
-
+  String? profilePictureUrl;
   final List<Widget> _pages = [];
 
   @override
@@ -31,6 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       currentUserId = user.uid;
+
+      await _getUserProfilePicture();
+
       setState(() {
         _pages.add(FeedScreen(currentUserId: currentUserId));
         _pages.add(const SearchScreen());
@@ -47,40 +52,68 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _getUserProfilePicture() async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .get();
+
+    if (userDoc.exists) {
+      setState(() {
+        profilePictureUrl = userDoc.data()?['profile_picture'];
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        items:  <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_filled),
-            label: AppLocalizations.of(context)!.home,
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          indicatorColor:
+              Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+          backgroundColor:
+              Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+          labelTextStyle: WidgetStateProperty.all(
+            const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.search),
-            label: AppLocalizations.of(context)!.search,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.chat),
-            label: AppLocalizations.of(context)!.chat,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.local_activity),
-            label: AppLocalizations.of(context)!.activity,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: AppLocalizations.of(context)!.profile
-          ),
-        ],
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
+        ),
+        child: NavigationBar(
+          onDestinationSelected: _onItemTapped,
+          selectedIndex: _currentIndex,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home_filled),
+              label: AppLocalizations.of(context)!.home,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.search),
+              label: AppLocalizations.of(context)!.search,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.chat),
+              label: AppLocalizations.of(context)!.chat,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.notifications),
+              label: AppLocalizations.of(context)!.activity,
+            ),
+            NavigationDestination(
+              icon: profilePictureUrl != null
+                  ? CircleAvatar(
+                      backgroundImage:
+                          CachedNetworkImageProvider(profilePictureUrl!),
+                      radius: 12,
+                    )
+                  : const Icon(Icons.person),
+              label: AppLocalizations.of(context)!.profile,
+            ),
+          ],
+        ),
       ),
     );
   }

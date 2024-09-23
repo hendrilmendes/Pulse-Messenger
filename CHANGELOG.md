@@ -10,6 +10,7 @@ Changelog
 - Melhorias no carregamento dos conteúdos
 - Correções de bugs
 - Ajustes visuais
+- Suporte ao Android 15 melhorado
 
 ### Features
 

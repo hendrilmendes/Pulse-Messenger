@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:social/widgets/comments/action_bar.dart';
+import 'package:social/widgets/comments/shimmer_comments.dart';
 
 class CommentsScreen extends StatefulWidget {
   final String postId;
@@ -94,8 +95,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator.adaptive());
+                  return const ShimmerCommentsLoading();
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {

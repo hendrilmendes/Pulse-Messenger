@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:social/screens/comments/comments.dart';
-import 'package:social/screens/post_details/post_details.dart';
+import 'package:social/screens/post/post_details/post_details.dart';
 import 'package:social/screens/shared/shared.dart';
+import 'package:social/widgets/feed/shimmer_post.dart';
 import 'package:social/widgets/video/video_player.dart';
 
 class PostTile extends StatefulWidget {
@@ -183,11 +185,11 @@ class _PostTileState extends State<PostTile> {
       isScrollControlled: true,
       builder: (_) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.9,
+          initialChildSize: 0.6,
           minChildSize: 0.3,
           maxChildSize: 0.9,
           expand: false,
-          builder: (_, controller) {
+          builder: (BuildContext context, ScrollController controller) {
             return Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -257,7 +259,7 @@ class _PostTileState extends State<PostTile> {
                     ),
                   ),
                   Text(
-                    '${widget.createdAt.day}/${widget.createdAt.month}/${widget.createdAt.year}',
+                    DateFormat('dd/MM/yyyy').format(widget.createdAt),
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
@@ -271,24 +273,21 @@ class _PostTileState extends State<PostTile> {
               onTap: _onImageTap,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: _isVideo(widget.imageUrl!)
-                      ? AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: VideoPlayerWidget(url: widget.imageUrl!),
-                        )
-                      : CachedNetworkImage(
-                          imageUrl: widget.imageUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator.adaptive(),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
-                        ),
-                ),
+                child: _isVideo(widget.imageUrl!)
+                    ? AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: VideoPlayerWidget(url: widget.imageUrl!),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: widget.imageUrl!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 400,
+                        placeholder: (context, url) => buildShimmerPost(),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error),
+                        fadeInDuration: const Duration(milliseconds: 300),
+                      ),
               ),
             ),
 

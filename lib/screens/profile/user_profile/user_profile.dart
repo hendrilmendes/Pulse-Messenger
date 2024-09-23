@@ -6,8 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:social/screens/chat_details/chat_details.dart';
-import 'package:social/screens/post_details/post_details.dart';
+import 'package:social/screens/chat/chat_details/chat_details.dart';
+import 'package:social/screens/post/post_details/post_details.dart';
+import 'package:social/widgets/user/shimmer_user.dart';
 import 'package:video_thumbnail/video_thumbnail.dart'; // Adicione isso
 import 'package:path_provider/path_provider.dart'; // Adicione isso
 
@@ -58,8 +59,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         .where('user_id', isEqualTo: widget.userId)
         .get();
 
+    final mediaPostCount = postSnapshot.docs.where((doc) {
+      final postData = doc.data() as Map<String, dynamic>?;
+      final fileUrl = postData?['file_url'] ?? '';
+      return fileUrl.isNotEmpty &&
+          (fileUrl.contains('.jpg') ||
+              fileUrl.contains('.png') ||
+              fileUrl.contains('.mp4'));
+    }).length;
+
     setState(() {
-      postCount = postSnapshot.size;
+      postCount = mediaPostCount;
     });
 
     // Fetch follower count
@@ -249,7 +259,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               .get(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Column(
+                children: [
+                  ShimmerUserLoader(
+                      height: 100,
+                      width: 100,
+                      borderRadius: BorderRadius.all(Radius.circular(50))),
+                  SizedBox(height: 16),
+                  ShimmerUserLoader(height: 20, width: 150),
+                  SizedBox(height: 8),
+                  ShimmerUserLoader(height: 20, width: 200),
+                ],
+              );
             }
 
             if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -348,11 +369,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             child: CircularProgressIndicator.adaptive());
                       }
 
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Text('Nenhuma postagem.'));
-                      }
+                      // Filtra os posts que possuem um 'file_url' válido
+                      final postsWithMedia = snapshot.data!.docs.where((post) {
+                        final postData = post.data() as Map<String, dynamic>?;
+                        final postImage = postData?['file_url'] ?? '';
+                        return postImage.isNotEmpty;
+                      }).toList();
 
-                      final posts = snapshot.data!.docs;
+                      if (postsWithMedia.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'Nenhum postagem encontrada.',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        );
+                      }
 
                       return GridView.builder(
                         gridDelegate:
@@ -361,9 +392,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           crossAxisSpacing: 4,
                           mainAxisSpacing: 4,
                         ),
-                        itemCount: posts.length,
+                        itemCount: postsWithMedia.length,
                         itemBuilder: (context, index) {
-                          final post = posts[index];
+                          final post = postsWithMedia[index];
                           final postData = post.data() as Map<String, dynamic>?;
                           final postImage = postData?['file_url'] ?? '';
                           final isVideo = _isVideo(postImage);
@@ -372,40 +403,51 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             onTap: () => _openPost(context, post.id),
                             child: Stack(
                               children: [
-                                FutureBuilder<String?>(
-                                  future: isVideo
-                                      ? _generateVideoThumbnail(postImage)
-                                      : null,
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const Center(
-                                          child: CircularProgressIndicator());
-                                    }
+                                isVideo
+                                    ? FutureBuilder<String?>(
+                                        future:
+                                            _generateVideoThumbnail(postImage),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Center(
+                                                child:
+                                                    CircularProgressIndicator());
+                                          }
 
-                                    final thumbnailPath = snapshot.data;
-
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        image: postImage.isNotEmpty
-                                            ? DecorationImage(
-                                                image: isVideo &&
-                                                        thumbnailPath != null
-                                                    ? FileImage(
-                                                        File(thumbnailPath))
-                                                    : CachedNetworkImageProvider(
-                                                        postImage),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : null,
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                            color: Colors.grey[300]!),
+                                          final thumbnailPath = snapshot.data;
+                                          return Container(
+                                            decoration: BoxDecoration(
+                                              image: thumbnailPath != null
+                                                  ? DecorationImage(
+                                                      image: FileImage(
+                                                          File(thumbnailPath)),
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                  : null,
+                                              color: Colors.grey[200],
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                  color: Colors.grey[300]!),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Container(
+                                        decoration: BoxDecoration(
+                                          image: DecorationImage(
+                                            image: CachedNetworkImageProvider(
+                                                postImage),
+                                            fit: BoxFit.cover,
+                                          ),
+                                          color: Colors.grey[200],
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.grey[300]!),
+                                        ),
                                       ),
-                                    );
-                                  },
-                                ),
                                 if (isVideo)
                                   Positioned(
                                     bottom: 8,

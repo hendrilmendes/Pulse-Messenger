@@ -30,7 +30,6 @@ class CommentActionBar extends StatelessWidget {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.grey[200],
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),

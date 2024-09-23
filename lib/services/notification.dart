@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
 
-// Configuração do GlobalKey para o Navigator
 final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
 
 class NotificationService {
@@ -17,12 +18,14 @@ class NotificationService {
     if (_isInitialized) return;
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_notification');
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       channelId,
       channelName,
       importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
     );
 
     const DarwinInitializationSettings initializationSettingsIOS =
@@ -38,7 +41,6 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    // Configura o callback para quando a notificação é tocada
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse:
@@ -72,19 +74,24 @@ class NotificationService {
     required String body,
     required int notificationId,
     String? payload,
+    String? userPhotoUrl,
   }) async {
     notificationId = notificationId % 2147483647;
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    final ByteArrayAndroidBitmap? largeIcon =
+        userPhotoUrl != null ? await _downloadImage(userPhotoUrl) : null;
+
+    AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       channelId,
       channelName,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
       importance: Importance.max,
       priority: Priority.high,
+      largeIcon: largeIcon,
     );
 
-    const NotificationDetails platformChannelSpecifics =
+    final NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await _flutterLocalNotificationsPlugin.show(
@@ -94,6 +101,26 @@ class NotificationService {
       platformChannelSpecifics,
       payload: payload,
     );
+  }
+
+  Future<ByteArrayAndroidBitmap?> _downloadImage(String imageUrl) async {
+    try {
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        final Uint8List imageBytes = response.bodyBytes;
+        return ByteArrayAndroidBitmap(imageBytes);
+      } else {
+        if (kDebugMode) {
+          print('Failed to download image.');
+        }
+        return null;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error downloading image: $e');
+      }
+      return null;
+    }
   }
 
   void _handleNotificationPayload(String payload) {

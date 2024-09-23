@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class StoryDetailScreen extends StatefulWidget {
   final String userId;
@@ -183,6 +184,11 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                           final userName = story['username'] ?? 'Unknown';
                           final storyImage = story['image_url'] ?? '';
                           final storyContent = story['story_content'] ?? '';
+                          final createdAt = story['created_at'] as Timestamp;
+
+                          // Formatando a data de criação
+                          final formattedTime = DateFormat('dd/MM/yyyy HH:mm')
+                              .format(createdAt.toDate());
 
                           return Stack(
                             fit: StackFit.expand,
@@ -205,7 +211,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                 ),
                               ),
                               Positioned(
-                                top: 50,
+                                top: 60,
                                 left: 10,
                                 right: 10,
                                 child: Row(
@@ -226,6 +232,12 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                       userName,
                                       style: const TextStyle(
                                           color: Colors.white, fontSize: 16),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      formattedTime,
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 14),
                                     ),
                                   ],
                                 ),

@@ -31,6 +31,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       autoPlay: false,
       looping: false,
       showControls: true,
+      showOptions: false,
+      allowFullScreen: false,
     );
 
     if (mounted) {
@@ -49,7 +51,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-
         return Stack(
           alignment: Alignment.center,
           children: [

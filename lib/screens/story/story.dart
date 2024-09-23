@@ -149,116 +149,121 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
                   final stories = snapshot.data!.docs;
 
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
+                  return GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 8.0,
+                      mainAxisSpacing: 8.0,
+                      childAspectRatio: 0.75,
+                    ),
                     itemCount: stories.length,
                     itemBuilder: (context, index) {
                       final story =
                           stories[index].data() as Map<String, dynamic>?;
                       final storyId = stories[index].id;
-                      final userName = story?['username'] ?? 'Unknown';
                       final userPhoto = story?['user_photo'] ?? '';
                       final storyContent = story?['story_content'] ?? '';
                       final imageUrl = story?['image_url'] ?? '';
 
-                      return Padding(
-                        padding: const EdgeInsets.all(8.0),
+                      return Card(
+                        elevation: 4.0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
                         child: Stack(
                           children: [
-                            Container(
-                              width: 100,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(12.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    spreadRadius: 1,
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 30,
-                                    backgroundImage: userPhoto.isNotEmpty
-                                        ? CachedNetworkImageProvider(userPhoto)
-                                        : null,
-                                    child: userPhoto.isEmpty
-                                        ? const Icon(Icons.person)
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    userName,
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (imageUrl.isNotEmpty)
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      child: Image.network(
-                                        imageUrl,
-                                        height: 80,
-                                        width: 80,
-                                        fit: BoxFit.cover,
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12.0),
+                              child: imageUrl.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                      height: double.infinity,
+                                      width: double.infinity,
+                                    )
+                                  : Container(
+                                      color: Colors.grey[200],
+                                      child: Center(
+                                        child: Icon(Icons.image,
+                                            size: 40, color: Colors.grey[600]),
                                       ),
                                     ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    storyContent,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
-                                    style:
-                                        Theme.of(context).textTheme.bodyMedium,
-                                  ),
-                                ],
-                              ),
                             ),
                             Positioned(
-                              top: 0,
-                              right: 0,
+                              top: 8,
+                              left: 8,
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundImage: userPhoto.isNotEmpty
+                                    ? CachedNetworkImageProvider(userPhoto)
+                                    : null,
+                                child: userPhoto.isEmpty
+                                    ? const Icon(Icons.person)
+                                    : null,
+                              ),
+                            ),
+                            
+                            if (storyContent.isNotEmpty)
+                              Positioned(
+                                bottom: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0, vertical: 4.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  child: Text(
+                                    storyContent,
+                                    style: const TextStyle(color: Colors.white),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
                               child: IconButton(
                                 icon:
                                     const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () async {
-                                  final shouldDelete = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        title: Text(
-                                            AppLocalizations.of(context)!
-                                                .deleteConfirm),
-                                        content: Text(
-                                            AppLocalizations.of(context)!
-                                                .deleteMomment),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context)
-                                                    .pop(false),
-                                            child: Text(
-                                                AppLocalizations.of(context)!
-                                                    .cancel),
-                                          ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(true),
-                                            child: Text(
-                                                AppLocalizations.of(context)!
-                                                    .delete),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
+                                  final appLocalizations =
+                                      AppLocalizations.of(context);
+                                  if (appLocalizations != null) {
+                                    final shouldDelete = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                              appLocalizations.deleteConfirm),
+                                          content: Text(
+                                              appLocalizations.deleteMomment),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(context)
+                                                      .pop(false),
+                                              child:
+                                                  Text(appLocalizations.cancel),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(context)
+                                                      .pop(true),
+                                              child:
+                                                  Text(appLocalizations.delete),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
 
-                                  if (shouldDelete == true) {
-                                    await _deleteStory(storyId);
+                                    if (shouldDelete == true) {
+                                      await _deleteStory(storyId);
+                                    }
                                   }
                                 },
                               ),

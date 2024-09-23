@@ -1,12 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:social/screens/post_details/post_details.dart';
-import 'package:social/screens/user_profile/user_profile.dart';
+import 'package:social/screens/post/post_details/post_details.dart';
+import 'package:social/screens/profile/user_profile/user_profile.dart';
 import 'package:social/services/notification.dart';
+import 'package:shimmer/shimmer.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -47,16 +47,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               .then((userSnapshot) {
             final userData = userSnapshot.data() as Map<String, dynamic>;
             final fromUser = userData['username'] ?? 'Unknown';
+            final userPhotoUrl = userData['profile_picture'];
             final notificationText = _buildNotificationText(type, fromUser);
 
-            if (kDebugMode) {
-              print('Sending notification: $notificationText');
-            }
-
             _notificationService.showNotification(
-                title: 'Social',
-                body: notificationText,
-                notificationId: notificationId);
+              title: 'Social',
+              body: notificationText,
+              notificationId: notificationId,
+              userPhotoUrl: userPhotoUrl,
+            );
 
             FirebaseFirestore.instance
                 .collection('notifications')
@@ -102,7 +101,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           final notifications = snapshot.data!.docs;
 
-          // Organizar as notificações por data
           final Map<String, List<Map<String, dynamic>>> groupedNotifications =
               {};
           for (var doc in notifications) {
@@ -129,14 +127,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         vertical: 10, horizontal: 16),
                     child: Text(
                       date,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Colors.grey[700],
                       ),
                     ),
                   ),
-                  Divider(height: 1, color: Colors.grey[300]),
+                  const Divider(height: 1, color: Colors.grey),
                   ...notifications.map((notification) {
                     final type = notification['type'];
                     final fromUserId = notification['from_user_id'];
@@ -149,7 +146,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           .get(),
                       builder: (context, userSnapshot) {
                         if (!userSnapshot.hasData) {
-                          return const CircularProgressIndicator();
+                          return _buildShimmer();
                         }
 
                         final userData =
@@ -169,6 +166,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                           title: Text(_buildNotificationText(type, fromUser)),
                           subtitle: Text(_formatTimestamp(createdAt)),
+                          trailing: _getNotificationIcon(type),
                           onTap: () async {
                             if (type == 'follow') {
                               Navigator.push(
@@ -190,10 +188,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                         PostDetailsScreen(postId: postId),
                                   ),
                                 );
-                              } else {
-                                if (kDebugMode) {
-                                  print("Post ID not found in notification");
-                                }
                               }
                             }
                           },
@@ -220,6 +214,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return '$fromUser começou a seguir você';
       default:
         return 'Você tem uma nova notificação';
+    }
+  }
+
+  Widget _buildShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListTile(
+        leading: const CircleAvatar(backgroundColor: Colors.grey),
+        title: Container(height: 10, color: Colors.grey),
+        subtitle: Container(height: 10, color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _getNotificationIcon(String type) {
+    switch (type) {
+      case 'like':
+        return const Icon(Icons.favorite, color: Colors.red);
+      case 'comment':
+        return const Icon(Icons.comment, color: Colors.blue);
+      case 'follow':
+        return const Icon(Icons.person_add, color: Colors.green);
+      default:
+        return const Icon(Icons.notifications, color: Colors.grey);
     }
   }
 
