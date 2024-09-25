@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/widgets/profile/shimmer_profile.dart';
-import 'package:video_thumbnail/video_thumbnail.dart'; // Adicione isso
+import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:social/providers/auth_provider.dart';
 import 'package:social/screens/post/post_details/post_details.dart';
 import 'package:social/screens/settings/settings.dart';

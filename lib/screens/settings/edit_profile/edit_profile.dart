@@ -120,7 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         actions: [
           IconButton(
             onPressed: _saveChanges,
-            icon: const Icon(Icons.save),
+            icon: const Icon(Icons.check),
           ),
         ],
       ),
@@ -151,7 +151,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _buildListTile(
             icon: Icons.person,
             title: AppLocalizations.of(context)!.userName,
-            subtitle: AppLocalizations.of(context)!.changueUserName,
             child: TextField(
               controller: _usernameController,
               decoration: InputDecoration(
@@ -161,7 +160,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _buildListTile(
             icon: Icons.info,
             title: AppLocalizations.of(context)!.bio,
-            subtitle: AppLocalizations.of(context)!.changeBio,
             child: TextField(
               controller: _bioController,
               decoration: InputDecoration(
@@ -190,7 +188,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildListTile({
     required IconData icon,
     required String title,
-    required String subtitle,
     required Widget child,
   }) {
     return Padding(
@@ -204,7 +201,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               title,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
-            subtitle: Text(subtitle),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),

@@ -14,6 +14,7 @@ import 'package:social/screens/settings/edit_profile/edit_profile.dart';
 import 'package:social/screens/settings/followers/followers.dart';
 import 'package:social/screens/settings/language/language.dart';
 import 'package:social/screens/settings/notifications/notifications.dart';
+import 'package:social/screens/settings/post/post.dart';
 import 'package:social/screens/settings/privacy/privacy.dart';
 import 'package:social/screens/settings/theme/theme.dart';
 
@@ -96,6 +97,20 @@ class SettingsScreen extends StatelessWidget {
                 context,
                 CupertinoPageRoute(
                   builder: (context) => const FollowManagementScreen(),
+                ),
+              );
+            },
+          ),
+
+          _buildListTile(
+            context,
+            icon: Icons.published_with_changes,
+            title: 'Gerenciar Postagens',
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => const ManagePostsScreen(),
                 ),
               );
             },

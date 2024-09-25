@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -8,11 +9,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:social/providers/manager_audio.dart';
 import 'package:social/screens/group/group_details/group_details.dart';
 import 'package:social/widgets/chat/action_bar.dart';
+import 'package:social/widgets/chat/audio.dart';
 import 'package:social/widgets/chat/full_screen.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
@@ -43,11 +47,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final _record = AudioRecorder();
   bool _isRecording = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isPlaying = false;
+  bool isPlaying = false;
   bool isPaused = false;
-  Duration _currentPosition = Duration.zero;
-  Duration _totalDuration = Duration.zero;
-  String? _playingAudioUrl;
+  Duration currentPosition = Duration.zero;
+  Duration totalDuration = Duration.zero;
+  String? playingAudioUrl;
+  Duration _recordingDuration = Duration.zero;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -57,7 +63,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
       if (mounted) {
         setState(() {
-          _isPlaying = state == PlayerState.playing;
+          isPlaying = state == PlayerState.playing;
           isPaused = state == PlayerState.paused;
         });
       }
@@ -66,7 +72,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _audioPlayer.onDurationChanged.listen((Duration duration) {
       if (mounted) {
         setState(() {
-          _totalDuration = duration;
+          totalDuration = duration;
         });
       }
     });
@@ -74,10 +80,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _audioPlayer.onPositionChanged.listen((Duration position) {
       if (mounted) {
         setState(() {
-          _currentPosition = position;
+          currentPosition = position;
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _messageController.removeListener(() {});
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   Future<Map<String, dynamic>> _fetchGroupData() async {
@@ -123,6 +136,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           .collection('messages')
           .add({
         'audio': downloadUrl,
+        'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
         'sender_id': _auth.currentUser!.uid,
         'timestamp': Timestamp.now(),
       });
@@ -161,48 +175,95 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  Future<void> _sendMedia({required bool fromGallery}) async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.media, // Permite fotos e vídeos
-        allowMultiple:
-            true, // Se quiser permitir seleção múltipla, mude para true
-      );
+  Future<void> _sendMedia(
+      {required bool fromGallery, bool isVideo = false}) async {
+    final currentUserId = _auth.currentUser!.uid;
 
-      if (result == null || result.files.isEmpty) {
-        throw 'Nenhuma mídia selecionada';
+    try {
+      File? file;
+      bool isVideoFile = false;
+
+      if (fromGallery) {
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.media,
+          allowMultiple: false,
+        );
+
+        if (result != null && result.files.isNotEmpty) {
+          file = File(result.files.first.path!);
+          isVideoFile = result.files.first.extension == 'mp4' ||
+              result.files.first.extension == 'mov';
+        } else {
+          throw 'Nenhuma mídia selecionada';
+        }
+      } else {
+        final ImagePicker picker = ImagePicker();
+        XFile? pickedFile;
+
+        if (isVideo) {
+          pickedFile = await picker.pickVideo(source: ImageSource.camera);
+        } else {
+          pickedFile = await picker.pickImage(
+              source: ImageSource.camera, imageQuality: 100);
+        }
+
+        if (pickedFile != null) {
+          file = File(pickedFile.path);
+          isVideoFile = pickedFile.mimeType?.startsWith('video') ?? false;
+        } else {
+          throw 'Nenhuma mídia capturada';
+        }
       }
 
-      final pickedFile = result.files.first;
-      final file = File(pickedFile.path!);
-
-      bool isVideo = pickedFile.extension == 'mp4' ||
-          pickedFile.extension == 'mov'; // Verifique se é vídeo ou imagem
+      // Carregar o arquivo no Firebase Storage
+      final fileExtension = file.path.split('.').last;
       final storageRef = FirebaseStorage.instance.ref().child(
-          '${isVideo ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.${pickedFile.extension}');
+          '${isVideoFile ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.$fileExtension');
       final uploadTask = storageRef.putFile(file);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
+      // Adiciona a mensagem com a URL da mídia à coleção de mensagens no Firestore
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        isVideo ? 'video' : 'image': downloadUrl,
-        'sender_id': _auth.currentUser!.uid,
+        isVideoFile ? 'video' : 'image': downloadUrl,
+        'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
+        'sender_id': currentUserId,
         'timestamp': Timestamp.now(),
         'read': false,
       });
 
+      // Atualiza o documento do chat com a última mensagem e hora
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': isVideo ? 'Vídeo' : 'Imagem',
+        'last_message': isVideoFile ? 'Vídeo' : 'Imagem',
         'last_message_time': Timestamp.now(),
-        'unread_count': FieldValue.increment(1),
       });
+
+      // Obtém o documento do chat para atualizar o unread_count dos outros participantes
+      final chatDoc = await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .get();
+      final chatData = chatDoc.data() as Map<String, dynamic>;
+      final participants = List<String>.from(chatData['participants'] ?? []);
+
+      // Atualiza o unread_count apenas para os participantes que não são o remetente
+      for (String participantId in participants) {
+        if (participantId != currentUserId) {
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .update({
+            'unread_count.$participantId': FieldValue.increment(1),
+          });
+        }
+      }
     } catch (e) {
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
@@ -211,12 +272,46 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _recordingDuration =
+            Duration(seconds: _recordingDuration.inSeconds + 1);
+      });
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+  }
+
+  String _formattedDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  String _formatTimesChat(Timestamp timestamp) {
+    return DateFormat('HH:mm').format(timestamp.toDate());
+  }
+
   void _startRecording() async {
     if (await _record.hasPermission()) {
       final directory = await getApplicationDocumentsDirectory();
       final path =
           '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _record.start(const RecordConfig(), path: path);
+
+      // Configuração de alta qualidade
+      const recordConfig = RecordConfig(
+        bitRate: 128000,
+        sampleRate: 44100,
+      );
+
+      await _record.start(recordConfig, path: path);
+      _startTimer(); // Inicia o temporizador
+
       if (mounted) {
         setState(() {
           _isRecording = true;
@@ -225,80 +320,34 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     } else {
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recording permission denied')),
+        const SnackBar(content: Text('Permissão de gravação negada')),
       );
     }
   }
 
   void _stopRecording() async {
     final filePath = await _record.stop();
+    _stopTimer(); // Para o temporizador
+
     if (filePath != null) {
       final file = File(filePath);
       await _sendAudio(file);
     }
+
     if (mounted) {
       setState(() {
         _isRecording = false;
+        _recordingDuration = Duration.zero; // Reseta o temporizador
       });
     }
   }
 
-  void playAudio(String audioUrl) async {
-    if (_playingAudioUrl != null && _playingAudioUrl != audioUrl) {
-      stopAudio();
-    }
-    try {
-      await _audioPlayer.setSource(UrlSource(audioUrl));
-      await _audioPlayer.resume();
-      if (mounted) {
-        setState(() {
-          _isPlaying = true;
-          isPaused = false;
-          _playingAudioUrl = audioUrl; // Atualize o URL do áudio tocando
-        });
-      }
-    } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error playing audio: $e')),
-      );
-    }
+  void playAudio(String audioUrl) {
+    AudioManager().playAudio(audioUrl);
   }
 
-  void stopAudio() async {
-    try {
-      await _audioPlayer.stop();
-      if (mounted) {
-        setState(() {
-          _isPlaying = false;
-          isPaused = false;
-          _currentPosition = Duration.zero;
-          _playingAudioUrl = null; // Limpe o URL do áudio tocando
-        });
-      }
-    } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error stopping audio: $e')),
-      );
-    }
-  }
-
-  void pauseAudio() async {
-    try {
-      await _audioPlayer.pause();
-      if (mounted) {
-        setState(() {
-          _isPlaying = false;
-          isPaused = true;
-        });
-      }
-    } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error pausing audio: $e')),
-      );
-    }
+  void _pauseAudio(String audioUrl) async {
+    AudioManager().pauseAudio(audioUrl);
   }
 
   void _navigateToGroupDetails() {
@@ -318,8 +367,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final uint8list = await VideoThumbnail.thumbnailData(
       video: videoUrl,
       imageFormat: ImageFormat.JPEG,
-      maxWidth: 150, // Tamanho máximo da largura da miniatura
-      quality: 75,
+      maxWidth: 512, // Tamanho máximo da largura da miniatura
+      quality: 100,
     );
 
     if (uint8list == null) {
@@ -411,30 +460,41 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
           ),
           if (_isRecording)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.redAccent,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: const Text(
-                'Gravando...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.mic, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Gravando... ${_formattedDuration(_recordingDuration)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
             ),
           ActionBar(
             isRecording: _isRecording,
@@ -522,55 +582,75 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             if (messageText.isNotEmpty) _buildMessageText(messageText),
             if (imageUrl != null)
               GestureDetector(
-                onTap: () => showMedia(context, imageUrl, false),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  height: 150, // Set fixed height to prevent stretching
-                  width: 150, // Set fixed width to prevent stretching
-                  fit: BoxFit.cover,
+                onTap: () => showMedia(
+                  context,
+                  messageData['image'],
+                  false,
+                ),
+                child: Card(
+                  child: CachedNetworkImage(
+                    imageUrl: messageData['image'],
+                    placeholder: (context, url) =>
+                        const CircularProgressIndicator(),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.error),
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             if (videoUrl != null)
               GestureDetector(
-                onTap: () => showMedia(context, videoUrl, true),
-                child: FutureBuilder<Widget>(
-                  future: _buildVideoThumbnail(videoUrl),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return SizedBox(
-                        height: 150, // Set fixed height for video
-                        width: 150, // Set fixed width for video
-                        child: snapshot.data!,
-                      );
-                    }
-                    return const CircularProgressIndicator();
-                  },
+                onTap: () => showMedia(
+                  context,
+                  messageData['video'],
+                  true,
                 ),
-              ),
-            if (audioUrl != null)
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(_isPlaying && _playingAudioUrl == audioUrl
-                        ? Icons.pause
-                        : Icons.play_arrow),
-                    onPressed: () {
-                      if (_isPlaying && _playingAudioUrl == audioUrl) {
-                        pauseAudio();
+                child: Card(
+                  child: FutureBuilder<Widget>(
+                    future: _buildVideoThumbnail(messageData['video']),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator.adaptive();
+                      } else if (snapshot.hasData) {
+                        return snapshot.data!;
+                      } else if (snapshot.hasError) {
+                        return const Icon(Icons.error);
                       } else {
-                        playAudio(audioUrl);
+                        return const Icon(Icons.video_library);
                       }
                     },
                   ),
-                  Expanded(
-                    child: LinearProgressIndicator(
-                      value: _isPlaying && _playingAudioUrl == audioUrl
-                          ? _currentPosition.inMilliseconds /
-                              _totalDuration.inMilliseconds
-                          : 0,
-                    ),
-                  ),
-                ],
+                ),
+              ),
+            Text(
+              _formatTimesChat(messageData['timestamp']),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            if (audioUrl != null)
+              AudioCard(
+                audioUrl: messageData['audio'],
+                onPlayPausePressed: () {
+                  final isPlayingNotifier =
+                      AudioManager().getIsPlayingNotifier(messageData['audio']);
+
+                  // Check if the audio is currently playing
+                  if (isPlayingNotifier.value) {
+                    _pauseAudio(messageData['audio']);
+                  } else {
+                    playAudio(messageData['audio']);
+                  }
+                },
+                onSliderChanged: (value) {
+                  AudioManager().seek(
+                      messageData['audio'], Duration(seconds: value.toInt()));
+                  if (mounted) {
+                    setState(() {
+                      currentPosition = Duration(seconds: value.toInt());
+                    });
+                  }
+                },
               ),
           ],
         ),
@@ -601,35 +681,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
 // Helper for Message Text
   Widget _buildMessageText(String messageText) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Text(
-        messageText,
-        style: const TextStyle(fontSize: 15),
-      ),
-    );
-  }
-
-// Helper for Image Content
-  Widget buildImageContent(String imageUrl) {
-    return GestureDetector(
-      onTap: () => showMedia(context, imageUrl, false),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxHeight: 200, // Limit maximum height
-            maxWidth: 200, // Limit maximum width
-          ),
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, url) =>
-                const Center(child: CircularProgressIndicator()),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
-          ),
-        ),
-      ),
+    return Text(
+      messageText,
+      style: const TextStyle(fontSize: 15),
     );
   }
 
@@ -652,44 +706,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           },
         ),
       ),
-    );
-  }
-
-// Helper for Audio Content
-  Widget buildAudioContent(String audioUrl) {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(_isPlaying && _playingAudioUrl == audioUrl
-              ? Icons.pause
-              : Icons.play_arrow),
-          onPressed: () {
-            if (_isPlaying && _playingAudioUrl == audioUrl) {
-              pauseAudio();
-            } else {
-              playAudio(audioUrl);
-            }
-          },
-        ),
-        Expanded(
-          child: LinearProgressIndicator(
-            value: _isPlaying && _playingAudioUrl == audioUrl
-                ? _currentPosition.inMilliseconds /
-                    _totalDuration.inMilliseconds
-                : 0,
-          ),
-        ),
-      ],
-    );
-  }
-
-// Helper for Timestamp
-  Widget buildTimestamp(dynamic timestamp) {
-    if (timestamp == null) return const SizedBox();
-    final time = DateTime.fromMillisecondsSinceEpoch(timestamp.seconds * 1000);
-    return Text(
-      DateFormat('HH:mm').format(time),
-      style: const TextStyle(fontSize: 12, color: Colors.grey),
     );
   }
 }

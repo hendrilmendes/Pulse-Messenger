@@ -51,7 +51,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             final notificationText = _buildNotificationText(type, fromUser);
 
             _notificationService.showNotification(
-              title: 'Social',
+              title: 'Pulse',
               body: notificationText,
               notificationId: notificationId,
               userPhotoUrl: userPhotoUrl,

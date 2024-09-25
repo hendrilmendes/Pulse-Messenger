@@ -58,6 +58,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Duration _recordingDuration = Duration.zero;
   Timer? _timer;
   late PresenceService _presenceService;
+  bool isBlocked = false;
 
   @override
   void initState() {
@@ -65,6 +66,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _presenceService = PresenceService();
     _presenceService.updateUserStatus('online');
     _updateTypingStatus(false);
+    _checkIfBlocked();
 
     _messagesStream = FirebaseFirestore.instance
         .collection('chats')
@@ -498,7 +500,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       final lastSeen = doc.data()?['last_seen'] as Timestamp?;
       final lastSeenString =
-          lastSeen != null ? _formatTimes(lastSeen) : 'Unknown';
+      lastSeen != null ? _formatTimes(lastSeen) : 'Unknown';
 
       if (mounted) {
         setState(() {
@@ -624,6 +626,39 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  Future<void> _checkIfBlocked() async {
+    final currentUserId = _auth.currentUser!.uid;
+    final otherUserId = widget.userId;
+
+    // Busca o usuário atual e verifica se ele bloqueou o outro usuário
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .get();
+
+    List blockedUsers = userDoc['blocked_users'] ?? [];
+    setState(() {
+      isBlocked = blockedUsers.contains(otherUserId);
+    });
+  }
+
+  void _unblockUser() async {
+    final currentUserId = _auth.currentUser!.uid;
+    final otherUserId = widget.userId;
+
+    // Remove o ID do usuário da lista de bloqueados
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .update({
+      'blocked_users': FieldValue.arrayRemove([otherUserId])
+    });
+
+    setState(() {
+      isBlocked = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -664,14 +699,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           final chatData =
-                              snapshot.data!.data() as Map<String, dynamic>;
+                          snapshot.data!.data() as Map<String, dynamic>;
                           final userId = _auth.currentUser!.uid;
                           final participants =
-                              chatData['participants'] as List<dynamic>;
+                          chatData['participants'] as List<dynamic>;
 
                           // Get the other user ID
                           final otherUserId =
-                              participants.firstWhere((id) => id != userId);
+                          participants.firstWhere((id) => id != userId);
 
                           // Check if the other user is typing
                           bool isOtherUserTyping =
@@ -692,7 +727,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 print('Error parsing date: $e');
                               }
                               lastSeen =
-                                  null; // Handle parse error if necessary
+                              null; // Handle parse error if necessary
                             }
                           }
 
@@ -704,8 +739,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               child: Text(
                                 _userData?['status'] == 'online'
                                     ? isOtherUserTyping
-                                        ? 'Digitando...'
-                                        : 'Online'
+                                    ? 'Digitando...'
+                                    : 'Online'
                                     : 'Última vez visto: ${formatTimestamp(lastSeen)}',
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.grey),
@@ -748,7 +783,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   itemBuilder: (context, index) {
                     final messageDoc = snapshot.data!.docs[index];
                     final messageData =
-                        messageDoc.data() as Map<String, dynamic>;
+                    messageDoc.data() as Map<String, dynamic>;
                     final isMe =
                         messageData['sender_id'] == _auth.currentUser!.uid;
                     final isRead = messageData['read'] ?? false;
@@ -756,6 +791,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     // Marcar como lida apenas se o usuário atual for o destinatário
                     if (!isMe && !isRead) {
                       _checkAndMarkMessagesAsRead(messageDoc.id);
+                    }
+
+                    if (isBlocked) {
+                      return Container(); // Ignora mensagens de usuários bloqueados
                     }
 
                     return Padding(
@@ -784,14 +823,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color:
-                                          isMe ? Colors.blue : Colors.grey[300],
+                                      isMe ? Colors.blue : Colors.grey[300],
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       messageData['text'],
                                       style: TextStyle(
                                         color:
-                                            isMe ? Colors.white : Colors.black,
+                                        isMe ? Colors.white : Colors.black,
                                       ),
                                     ),
                                   ),
@@ -806,9 +845,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                       child: CachedNetworkImage(
                                         imageUrl: messageData['image'],
                                         placeholder: (context, url) =>
-                                            const CircularProgressIndicator(),
+                                        const CircularProgressIndicator(),
                                         errorWidget: (context, url, error) =>
-                                            const Icon(Icons.error),
+                                        const Icon(Icons.error),
                                         width: 150,
                                         height: 150,
                                         fit: BoxFit.cover,
@@ -849,7 +888,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     onPlayPausePressed: () {
                                       final isPlayingNotifier = AudioManager()
                                           .getIsPlayingNotifier(
-                                              messageData['audio']);
+                                          messageData['audio']);
 
                                       // Check if the audio is currently playing
                                       if (isPlayingNotifier.value) {
@@ -874,29 +913,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     padding: const EdgeInsets.only(top: 4),
                                     child: isRead
                                         ? const Stack(
-                                            children: [
-                                              Icon(Icons.check,
-                                                  color: Colors.blue, size: 18),
-                                              Positioned(
-                                                left: 5,
-                                                child: Icon(Icons.check,
-                                                    color: Colors.blue,
-                                                    size: 18),
-                                              ),
-                                            ],
-                                          )
+                                      children: [
+                                        Icon(Icons.check,
+                                            color: Colors.blue, size: 18),
+                                        Positioned(
+                                          left: 5,
+                                          child: Icon(Icons.check,
+                                              color: Colors.blue,
+                                              size: 18),
+                                        ),
+                                      ],
+                                    )
                                         : const Stack(
-                                            children: [
-                                              Icon(Icons.check,
-                                                  color: Colors.grey, size: 18),
-                                              Positioned(
-                                                left: 5,
-                                                child: Icon(Icons.check,
-                                                    color: Colors.grey,
-                                                    size: 18),
-                                              ),
-                                            ],
-                                          ),
+                                      children: [
+                                        Icon(Icons.check,
+                                            color: Colors.grey, size: 18),
+                                        Positioned(
+                                          left: 5,
+                                          child: Icon(Icons.check,
+                                              color: Colors.grey,
+                                              size: 18),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 Text(
                                   _formatTimesChat(messageData['timestamp']),
@@ -920,7 +959,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               children: [
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,
@@ -951,6 +990,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
               ],
             ),
+          if (isBlocked)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const Text(
+                    'Você bloqueou este usuário.',
+                    style: TextStyle(color: Colors.red, fontSize: 16),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _unblockUser,
+                    child: const Text('Desbloquear'),
+                  ),
+                ],
+              ),
+            )
+          else
           ActionBar(
             isRecording: _isRecording,
             onCameraPressed: () =>

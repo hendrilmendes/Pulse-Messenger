@@ -148,6 +148,24 @@ class _ChatsScreenState extends State<ChatsScreen> {
     });
   }
 
+  Future<bool> _checkIfBlocked(String otherParticipantId) async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return false;
+
+    final userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .get();
+
+    if (userSnapshot.exists) {
+      final userData = userSnapshot.data();
+      final blockedUsers = List<String>.from(userData?['blocked_users'] ?? []);
+      return blockedUsers.contains(otherParticipantId);
+    }
+    return false;
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -361,73 +379,97 @@ class _ChatsScreenState extends State<ChatsScreen> {
                         ? chatData['unread_count'][currentUserId] ?? 0
                         : chatData['unread_count'] ?? 0;
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: profilePicture.isNotEmpty
-                            ? CachedNetworkImageProvider(profilePicture)
-                            : null,
-                        child: profilePicture.isEmpty
-                            ? Icon(
-                                isGroup ? Icons.group : Icons.person,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                      title: Text(title),
-                      subtitle: Text(
-                        lastMessage.length > 30
-                            ? '${lastMessage.substring(0, 30)}...'
-                            : lastMessage,
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(formattedTime),
-                          if (unreadCount > 0)
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '$unreadCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                    return FutureBuilder<bool>(
+                      future: _checkIfBlocked(otherParticipantId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const ListTile(
+                            leading: ShimmerChatAvatar(radius: 24),
+                            title: Text('Carregando...'),
+                            subtitle: Text('Carregando...'),
+                          );
+                        }
+
+                        final isBlocked = snapshot.data ?? false;
+
+                        if (isBlocked && !isGroup) {
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.grey.shade200,
+                              child: const Icon(Icons.block, color: Colors.red),
+                            ),
+                            title: const Text('Usuário Bloqueado'),
+                            subtitle: const Text('Você não pode ver as mensagens desse usuário.'),
+                            trailing: Text(formattedTime),
+                          );
+                        }
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: profilePicture.isNotEmpty
+                                ? CachedNetworkImageProvider(profilePicture)
+                                : null,
+                            child: profilePicture.isEmpty
+                                ? Icon(
+                              isGroup ? Icons.group : Icons.person,
+                              color: Colors.white,
+                            )
+                                : null,
+                          ),
+                          title: Text(title),
+                          subtitle: Text(
+                            lastMessage.length > 30
+                                ? '${lastMessage.substring(0, 30)}...'
+                                : lastMessage,
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(formattedTime),
+                              if (unreadCount > 0)
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '$unreadCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          onTap: () async {
+                            await FirebaseFirestore.instance
+                                .collection('chats')
+                                .doc(chat.id)
+                                .update({
+                              'unread_count.$currentUserId': 0,
+                            });
+
+                            lastNotificationTimes[otherParticipantId] = DateTime.now();
+
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => isGroup
+                                    ? GroupChatScreen(
+                                  chatId: chat.id,
+                                  userId: currentUserId,
+                                  isGroup: isGroup,
+                                )
+                                    : ChatDetailScreen(
+                                  chatId: chat.id,
+                                  userId: otherParticipantId,
+                                  isGroup: isGroup,
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      onTap: () async {
-                        await FirebaseFirestore.instance
-                            .collection('chats')
-                            .doc(chat.id)
-                            .update({
-                          'unread_count.$currentUserId': 0,
-                        });
-
-                        // Atualize lastNotificationTimes aqui para garantir que a próxima notificação seja enviada corretamente
-                        lastNotificationTimes[otherParticipantId] =
-                            DateTime.now();
-
-                        Navigator.push(
-                          // ignore: use_build_context_synchronously
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => isGroup
-                                ? GroupChatScreen(
-                                    chatId: chat.id,
-                                    userId: currentUserId,
-                                    isGroup: isGroup,
-                                  )
-                                : ChatDetailScreen(
-                                    chatId: chat.id,
-                                    userId: otherParticipantId,
-                                    isGroup: isGroup,
-                                  ),
-                          ),
+                            );
+                          },
                         );
                       },
                     );

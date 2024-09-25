@@ -1,6 +1,6 @@
 {
     "@@locale": "pt",
-    "appName": "Social",
+    "appName": "Pulse",
     "home": "Feed",
     "search": "Buscar",
     "chat": "Chat",
@@ -34,10 +34,8 @@
     "errorImageProfile": "Falha ao carregar a imagem.",
     "profileInformation": "Informações do Perfil",
     "userName": "Nome de Usuário",
-    "changueUserName": "Altere seu nome de usuário",
     "insertUserName": "Digite seu nome de usuário",
     "bio": "Biografia",
-    "changeBio": "Adicione uma biografia",
     "insertBio": "Digite sua bio",
     "cancel": "Cancelar",
     "delete": "Apagar",

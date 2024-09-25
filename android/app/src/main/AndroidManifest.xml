@@ -32,7 +32,7 @@
     </queries>
 
     <application
-        android:label="Social"
+        android:label="Pulse Messenger"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

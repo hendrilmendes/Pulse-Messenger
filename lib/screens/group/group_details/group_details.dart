@@ -29,7 +29,9 @@ class GroupDetailsScreen extends StatefulWidget {
 class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   late DocumentSnapshot<Map<String, dynamic>> groupData;
   bool isLoading = true;
+  bool isAdmin = false;
   final DateFormat dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+  String? adminId;
 
   @override
   void initState() {
@@ -43,8 +45,12 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           .collection('chats')
           .doc(widget.chatId)
           .get();
+
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       setState(() {
         isLoading = false;
+        adminId = groupData.data()?['admin']; // Captura o ID do admin
+        isAdmin = adminId == currentUserId;
       });
     } catch (error) {
       if (kDebugMode) {
@@ -84,7 +90,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     }
   }
 
-  Future<void> _leaveGroup() async {
+  Future<void> leaveGroup() async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
@@ -100,6 +106,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   }
 
   Future<void> pickImage() async {
+    if (!isAdmin) {
+      return;
+    }
+
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
@@ -127,6 +137,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   }
 
   void _editGroup(BuildContext context) {
+    if (!isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Apenas o administrador pode editar o grupo.'),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -186,16 +205,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         centerTitle: true,
         elevation: 0.5,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              _editGroup(context);
-            },
-          ),
+          if (isAdmin) // Exibe o botão de edição apenas para o administrador
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                _editGroup(context);
+              },
+            ),
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -235,13 +255,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    'Administrador: ${groupData.data()?['admin_id'] ?? 'Desconhecido'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
+                  const Divider(),
                   const Text(
-                    'Participantes:',
+                    'Membros:',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -265,59 +281,79 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         );
                       }
 
-                      final groupData = snapshot.data!.data();
-                      final participants =
-                          List<String>.from(groupData?['participants'] ?? []);
+                      final participants = List<String>.from(
+                          snapshot.data!.data()?['participants'] ?? []);
+                      participants.sort((a, b) {
+                        if (a == adminId) return -1;
+                        if (b == adminId) return 1;
+                        return 0;
+                      });
 
                       return ListView.builder(
                         shrinkWrap: true,
                         itemCount: participants.length,
                         itemBuilder: (context, index) {
                           final participantId = participants[index];
-
                           return FutureBuilder<
                               DocumentSnapshot<Map<String, dynamic>>>(
                             future: FirebaseFirestore.instance
                                 .collection('users')
                                 .doc(participantId)
                                 .get(),
-                            builder: (context, userSnapshot) {
-                              if (userSnapshot.connectionState ==
+                            builder: (context, participantSnapshot) {
+                              if (participantSnapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const ListTile(
-                                  leading: CircleAvatar(
-                                    child: CircularProgressIndicator.adaptive(),
-                                  ),
                                   title: Text('Carregando...'),
                                 );
                               }
 
-                              if (!userSnapshot.hasData ||
-                                  !userSnapshot.data!.exists) {
+                              if (!participantSnapshot.hasData ||
+                                  !participantSnapshot.data!.exists) {
                                 return const ListTile(
-                                  leading: CircleAvatar(
-                                    child: Icon(Icons.person),
-                                  ),
-                                  title: Text('Usuário Desconhecido'),
+                                  title: Text('Usuário não encontrado'),
                                 );
                               }
 
-                              final userData = userSnapshot.data!.data();
-                              final userName =
-                                  userData?['username'] ?? 'Usuário';
+                              final isGroupAdmin = participantId == adminId;
 
+                              final participantData =
+                                  participantSnapshot.data!.data();
                               return ListTile(
                                 leading: CircleAvatar(
-                                  backgroundImage:
-                                      userData?['profile_picture'] != null
-                                          ? CachedNetworkImageProvider(
-                                              userData!['profile_picture'])
-                                          : null,
-                                  child: userData?['profile_picture'] == null
-                                      ? const Icon(Icons.person)
-                                      : null,
+                                  backgroundImage: participantData?[
+                                              'profile_picture'] !=
+                                          null
+                                      ? CachedNetworkImageProvider(
+                                          participantData!['profile_picture'])
+                                      : const AssetImage(
+                                              'assets/default_avatar.png')
+                                          as ImageProvider,
                                 ),
-                                title: Text(userName),
+                                title: Row(
+                                  children: [
+                                    Text(participantData?['username'] ??
+                                        'Desconhecido'),
+                                    if (isGroupAdmin)
+                                      const Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: SizedBox(
+                                          height: 30,
+                                          width: 60,
+                                          child: Card(
+                                            child: Center(
+                                              child: Text(
+                                                'Admin',
+                                                style: TextStyle(
+                                                    color: Colors.green,
+                                                    fontSize: 12),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               );
                             },
                           );
@@ -327,13 +363,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   ),
                   const SizedBox(height: 20),
                   if (widget.isGroup)
-                    ElevatedButton.icon(
-                      onPressed: _leaveGroup,
-                      icon: const Icon(Icons.exit_to_app),
-                      label: const Text('Sair do Grupo'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.red,
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: leaveGroup,
+                        icon: const Icon(Icons.exit_to_app),
+                        label: const Text('Sair do Grupo'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.red,
+                        ),
                       ),
                     ),
                 ],

@@ -33,7 +33,7 @@ class RegisterScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Criar uma Conta',
+                    'Crie sua Conta',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,
@@ -53,7 +53,7 @@ class RegisterScreen extends StatelessWidget {
                         borderSide: BorderSide.none,
                       ),
                       prefixIcon:
-                          const Icon(Icons.email, color: Colors.black54),
+                          const Icon(Icons.email),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -69,7 +69,7 @@ class RegisterScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: const Icon(Icons.lock, color: Colors.black54),
+                      prefixIcon: const Icon(Icons.lock),
                     ),
                     obscureText: true,
                   ),

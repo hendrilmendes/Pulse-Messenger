@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social/providers/auth_provider.dart';
+import 'package:social/screens/login/forgot_password/forgot_password.dart';
 import 'package:social/screens/profile/create_profile/create_profile.dart';
 import 'package:social/screens/home/home.dart';
 import 'package:social/screens/login/register/register.dart';
@@ -37,10 +38,16 @@ class LoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Bem vindo!',
+                'Bem vindo ao Pulse',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
+              const Text(
+                'Conecte-se com o ritmo do mundo!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 30),
 
               // Campo de email
               TextField(
@@ -52,7 +59,7 @@ class LoginScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(Icons.email, color: Colors.black54),
+                  prefixIcon: const Icon(Icons.email),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -68,11 +75,24 @@ class LoginScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.black54),
+                  prefixIcon: const Icon(Icons.lock),
                 ),
                 obscureText: true,
               ),
-              const SizedBox(height: 20),
+
+              // Botão "Esqueceu a Senha?"
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(builder: (context) => ForgotPasswordScreen()),
+                  );
+                },
+                child: const Text(
+                  'Esqueceu a Senha?'),
+              ),
+
+              const SizedBox(height: 30),
 
               // Botão de login com email e senha
               Consumer<AuthProvider>(
@@ -149,7 +169,7 @@ class LoginScreen extends StatelessWidget {
               // Botão de login com Google
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
-                  return ElevatedButton.icon(
+                  return ElevatedButton(
                     onPressed: () async {
                       try {
                         await authProvider.signInWithGoogle();
@@ -159,22 +179,20 @@ class LoginScreen extends StatelessWidget {
 
                           if (user != null) {
                             final hasProfile =
-                                await authProvider.hasCompleteProfile(user);
+                            await authProvider.hasCompleteProfile(user);
 
                             if (hasProfile) {
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 CupertinoPageRoute(
                                     builder: (context) => const HomeScreen()),
-                                (Route<dynamic> route) =>
-                                    false, // Remove todas as rotas anteriores
+                                    (Route<dynamic> route) => false, // Remove todas as rotas anteriores
                               );
                             } else {
                               Navigator.pushReplacement(
                                 context,
                                 CupertinoPageRoute(
-                                  builder: (context) =>
-                                      CreateProfileScreen(user: user),
+                                  builder: (context) => CreateProfileScreen(user: user),
                                 ),
                               );
                             }
@@ -196,14 +214,23 @@ class LoginScreen extends StatelessWidget {
                         );
                       }
                     },
-                    icon: const Icon(Icons.login),
-                    label: const Text('Login com Google'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/img/google_logo.png',
+                          height: 24.0,
+                        ),
+                        const SizedBox(width: 8.0),
+                        const Text('Login com Google'),
+                      ],
                     ),
                   );
                 },

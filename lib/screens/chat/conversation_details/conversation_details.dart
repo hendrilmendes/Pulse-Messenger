@@ -1,11 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:photo_view/photo_view.dart';
-import 'package:video_player/video_player.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:social/widgets/chat/full_view.dart';
 
 class ConversationDetailsScreen extends StatelessWidget {
   final String chatId;
@@ -71,6 +70,70 @@ class ConversationDetailsScreen extends StatelessWidget {
     }
   }
 
+// Verifica se o usuário já está bloqueado
+  Future<bool> _isUserBlocked(String userId) async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
+
+      List blockedUsers = userData != null && userData.containsKey('blocked_users')
+          ? userData['blocked_users']
+          : [];
+
+      return blockedUsers.contains(userId);
+    }
+    return false;
+  }
+
+
+  // Função para bloquear/desbloquear o usuário
+  void _toggleBlockUser(BuildContext context, bool isBlocked) async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        String currentUserId = currentUser.uid;
+
+        if (isBlocked) {
+          // Desbloquear usuário removendo do array
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUserId)
+              .update({
+            'blocked_users': FieldValue.arrayRemove([userId])
+          });
+
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Usuário desbloqueado com sucesso!')),
+          );
+        } else {
+          // Bloquear usuário adicionando ao array
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUserId)
+              .update({
+            'blocked_users': FieldValue.arrayUnion([userId])
+          });
+
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Usuário bloqueado com sucesso!')),
+          );
+        }
+      }
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao alterar status do usuário: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,7 +146,8 @@ class ConversationDetailsScreen extends StatelessWidget {
         elevation: 0.5,
       ),
       body: FutureBuilder(
-        future: Future.wait([_fetchUserData(), _fetchMedia()]),
+        future:
+            Future.wait([_fetchUserData(), _fetchMedia(), _isUserBlocked(userId)]),
         builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator.adaptive());
@@ -99,6 +163,25 @@ class ConversationDetailsScreen extends StatelessWidget {
 
           Map<String, dynamic> userData = snapshot.data![0];
           List<Map<String, dynamic>> mediaList = snapshot.data![1];
+          bool isBlocked = snapshot.data![2];
+
+          // Exibir uma mensagem se o usuário estiver bloqueado
+          if (isBlocked) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Usuário bloqueado e não e possível visualizar as informações desta conversa.',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }
 
           List<Map<String, dynamic>> images =
               mediaList.where((media) => media['type'] == 'image').toList();
@@ -166,15 +249,16 @@ class ConversationDetailsScreen extends StatelessWidget {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            backgroundColor: Colors.red,
+                            backgroundColor:
+                                isBlocked ? Colors.green : Colors.red,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                           ),
                           onPressed: () {
-                            // Add your block functionality here
+                            _toggleBlockUser(context, isBlocked);
                           },
-                          child: const Text('Bloquear Usuário'),
+                          child: Text(isBlocked ? 'Desbloquear' : 'Bloquear'),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -399,196 +483,5 @@ class ConversationDetailsScreen extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-class FullScreenImageView extends StatelessWidget {
-  final String imageUrl;
-
-  const FullScreenImageView({super.key, required this.imageUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: PhotoView(
-        imageProvider: CachedNetworkImageProvider(imageUrl),
-        minScale: PhotoViewComputedScale.contained,
-        maxScale: PhotoViewComputedScale.covered * 2,
-      ),
-    );
-  }
-}
-
-class FullScreenVideoPlayer extends StatefulWidget {
-  final String videoUrl;
-
-  const FullScreenVideoPlayer({super.key, required this.videoUrl});
-
-  @override
-  // ignore: library_private_types_in_public_api
-  _FullScreenVideoPlayerState createState() => _FullScreenVideoPlayerState();
-}
-
-class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
-  late VideoPlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-      ..initialize().then((_) {
-        setState(() {});
-        _controller.play();
-      });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Vídeo',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        elevation: 0.5,
-      ),
-      body: Center(
-        child: _controller.value.isInitialized
-            ? AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: VideoPlayer(_controller),
-              )
-            : const CircularProgressIndicator(),
-      ),
-    );
-  }
-}
-
-class FullScreenAudioPlayer extends StatefulWidget {
-  final String audioUrl;
-
-  const FullScreenAudioPlayer({super.key, required this.audioUrl});
-
-  @override
-  // ignore: library_private_types_in_public_api
-  _FullScreenAudioPlayerState createState() => _FullScreenAudioPlayerState();
-}
-
-class _FullScreenAudioPlayerState extends State<FullScreenAudioPlayer> {
-  late AudioPlayer _audioPlayer;
-  bool _isPlaying = false;
-  Duration _currentPosition = Duration.zero;
-  Duration _totalDuration = Duration.zero;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _audioPlayer = AudioPlayer();
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      if (mounted) {
-        setState(() {
-          _isPlaying = state == PlayerState.playing;
-        });
-      }
-    });
-    _audioPlayer.onDurationChanged.listen((Duration duration) {
-      if (mounted) {
-        setState(() {
-          _totalDuration = duration;
-          _isLoading = false;
-        });
-      }
-    });
-    _audioPlayer.onPositionChanged.listen((Duration position) {
-      if (mounted) {
-        setState(() {
-          _currentPosition = position;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  void _togglePlayPause() async {
-    if (_isPlaying) {
-      await _audioPlayer.pause();
-    } else {
-      await _audioPlayer.play(UrlSource(widget.audioUrl));
-    }
-    if (mounted) {
-      setState(() {
-        _isPlaying = !_isPlaying;
-      });
-    }
-  }
-
-  void _seekTo(double value) async {
-    final position = Duration(milliseconds: value.toInt());
-    await _audioPlayer.seek(position);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Áudio',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        elevation: 0.5,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: Icon(
-                _isPlaying ? Icons.pause : Icons.play_arrow,
-                size: 64,
-              ),
-              onPressed: _togglePlayPause,
-            ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : Column(
-                    children: [
-                      Slider(
-                        value: _currentPosition.inMilliseconds.toDouble(),
-                        max: _totalDuration.inMilliseconds.toDouble(),
-                        onChanged: (value) {
-                          _seekTo(value);
-                        },
-                      ),
-                      Text(
-                        '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
-                      ),
-                    ],
-                  ),
-            Text(_isPlaying ? 'Tocando...' : 'Pausado'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    String minutes = duration.inMinutes.toString().padLeft(2, '0');
-    String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
   }
 }

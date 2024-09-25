@@ -238,7 +238,7 @@ class _PostTileState extends State<PostTile> {
           GestureDetector(
             onTap: widget.onProfileTap,
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -293,17 +293,17 @@ class _PostTileState extends State<PostTile> {
 
           // Post Content
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             child: Text(
               widget.content,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 16),
             ),
           ),
           const Divider(),
 
           // Actions
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -336,20 +336,20 @@ class _PostTileState extends State<PostTile> {
                         IconButton(
                           icon: Icon(
                             _isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: _isLiked ? Colors.red : null,
+                            color: _isLiked ? Colors.red : null,size: 18
                           ),
                           onPressed: _toggleLike,
                         ),
                         Text('$likesCount curtidas'),
                         IconButton(
-                          icon: const Icon(Icons.comment, size: 20),
+                          icon: const Icon(Icons.comment, size: 18),
                           onPressed: () {
                             _showComments(context,
                                 postOwnerId); // Passar o ID do proprietário correto
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.share, size: 20),
+                          icon: const Icon(Icons.share, size: 18),
                           onPressed: () {
                             _showShareOptions(context);
                           },

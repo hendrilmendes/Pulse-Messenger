@@ -146,4 +146,13 @@ class AuthProvider with ChangeNotifier {
       }
     }
   }
+
+  Future<void> resetPassword(String email) async {
+    // Lógica para enviar e-mail de redefinição de senha
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw Exception('Erro ao enviar e-mail de redefinição de senha: ${e.toString()}');
+    }
+  }
 }
