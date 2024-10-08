@@ -309,6 +309,7 @@ class _PostScreenState extends State<PostScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _contentController,
+                maxLines: null,
                 decoration: InputDecoration(
                   labelText: AppLocalizations.of(context)!.content,
                   border: OutlineInputBorder(
@@ -328,7 +329,7 @@ class _PostScreenState extends State<PostScreen> {
               const SizedBox(height: 16),
               if (_isSubmitting)
                 Center(
-                  child: CircularProgressIndicator(
+                  child: CircularProgressIndicator.adaptive(
                     value: _uploadProgress,
                     backgroundColor: Colors.grey.shade300,
                   ),

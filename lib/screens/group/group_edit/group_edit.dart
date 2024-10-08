@@ -122,7 +122,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(

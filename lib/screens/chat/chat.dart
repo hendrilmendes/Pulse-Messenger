@@ -165,7 +165,6 @@ class _ChatsScreenState extends State<ChatsScreen> {
     return false;
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -382,7 +381,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     return FutureBuilder<bool>(
                       future: _checkIfBlocked(otherParticipantId),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const ListTile(
                             leading: ShimmerChatAvatar(radius: 24),
                             title: Text('Carregando...'),
@@ -399,7 +399,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               child: const Icon(Icons.block, color: Colors.red),
                             ),
                             title: const Text('Usuário Bloqueado'),
-                            subtitle: const Text('Você não pode ver as mensagens desse usuário.'),
+                            subtitle: const Text(
+                                'Você não pode ver as mensagens desse usuário.'),
                             trailing: Text(formattedTime),
                           );
                         }
@@ -411,9 +412,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
                                 : null,
                             child: profilePicture.isEmpty
                                 ? Icon(
-                              isGroup ? Icons.group : Icons.person,
-                              color: Colors.white,
-                            )
+                                    isGroup ? Icons.group : Icons.person,
+                                    color: Colors.white,
+                                  )
                                 : null,
                           ),
                           title: Text(title),
@@ -451,22 +452,24 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               'unread_count.$currentUserId': 0,
                             });
 
-                            lastNotificationTimes[otherParticipantId] = DateTime.now();
+                            lastNotificationTimes[otherParticipantId] =
+                                DateTime.now();
 
                             Navigator.push(
+                              // ignore: use_build_context_synchronously
                               context,
                               CupertinoPageRoute(
                                 builder: (context) => isGroup
                                     ? GroupChatScreen(
-                                  chatId: chat.id,
-                                  userId: currentUserId,
-                                  isGroup: isGroup,
-                                )
+                                        chatId: chat.id,
+                                        userId: currentUserId,
+                                        isGroup: isGroup,
+                                      )
                                     : ChatDetailScreen(
-                                  chatId: chat.id,
-                                  userId: otherParticipantId,
-                                  isGroup: isGroup,
-                                ),
+                                        chatId: chat.id,
+                                        userId: otherParticipantId,
+                                        isGroup: isGroup,
+                                      ),
                               ),
                             );
                           },

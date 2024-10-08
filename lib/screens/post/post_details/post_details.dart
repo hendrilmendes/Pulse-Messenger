@@ -171,21 +171,38 @@ class PostDetailsScreen extends StatelessWidget {
                     final postData =
                         snapshot.data!.data() as Map<String, dynamic>;
                     final fileUrl = postData['file_url'] ?? '';
+                    final content = postData['content'] ?? 'Sem legenda';
 
                     // Verificar se é um vídeo ou imagem
-                    return fileUrl.isNotEmpty
-                        ? _isVideo(fileUrl)
-                            ? AspectRatio(
-                                aspectRatio: 16 / 9,
-                                child: VideoPlayerWidget(url: fileUrl),
-                              )
-                            : InteractiveViewer(
-                                child: Image(
-                                  image: CachedNetworkImageProvider(fileUrl),
-                                  fit: BoxFit.contain,
-                                ),
-                              )
-                        : const SizedBox.shrink();
+                    if (fileUrl.isNotEmpty) {
+                      return _isVideo(fileUrl)
+                          ? AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: VideoPlayerWidget(url: fileUrl),
+                            )
+                          : InteractiveViewer(
+                              child: Image(
+                                image: CachedNetworkImageProvider(fileUrl),
+                                fit: BoxFit.contain,
+                              ),
+                            );
+                    } else if (content.isNotEmpty) {
+                      return Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            content.isNotEmpty ? content : 'Sem legenda',
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    } else {
+                      return const SizedBox.shrink();
+                    }
                   },
                 ),
               ),
@@ -212,7 +229,7 @@ class PostDetailsScreen extends StatelessWidget {
                             child: Text('Post não encontrado.'));
                       }
 
-                      // Conteúdo do post (não alterado)
+                      // Conteúdo do post
                       final postData =
                           snapshot.data!.data() as Map<String, dynamic>;
                       final userPhoto = postData['user_photo'] ?? '';

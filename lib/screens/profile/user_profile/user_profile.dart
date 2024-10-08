@@ -301,57 +301,69 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              userName,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              userBio,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildInfoColumn(context, 'Posts', postCount),
-                                _buildInfoColumn(
-                                    context, 'Seguidores', followerCount),
-                                _buildInfoColumn(
-                                    context, 'Seguindo', followingCount),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: _toggleFollow,
-                                    child: Text(
-                                        isFollowing ? 'Seguindo' : 'Seguir'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Nome do usuário
+                          Text(
+                            userName,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Biografia do usuário
+                          Text(
+                            userBio,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Contadores de Posts, Seguidores e Seguindo
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildInfoColumn(context, 'Posts', postCount),
+                              _buildInfoColumn(
+                                  context, 'Seguidores', followerCount),
+                              _buildInfoColumn(
+                                  context, 'Seguindo', followingCount),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _toggleFollow,
+                                  child: Text(
+                                    isFollowing ? 'Seguindo' : 'Seguir',
+                                    style: const TextStyle(color: Colors.blue),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () =>
-                                        _startChat(context, widget.userId),
-                                    child: const Text('Chat'),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _startChat(context, widget.userId),
+                                  child: const Text(
+                                    'Chat',
+                                    style: TextStyle(color: Colors.blue),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ]),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -411,8 +423,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                           if (snapshot.connectionState ==
                                               ConnectionState.waiting) {
                                             return const Center(
-                                                child:
-                                                    CircularProgressIndicator());
+                                                child: CircularProgressIndicator
+                                                    .adaptive());
                                           }
 
                                           final thumbnailPath = snapshot.data;

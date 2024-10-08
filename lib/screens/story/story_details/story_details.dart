@@ -204,7 +204,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                   ),
                                 ),
                                 placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator(
+                                  child: CircularProgressIndicator.adaptive(
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                         Colors.white),
                                   ),

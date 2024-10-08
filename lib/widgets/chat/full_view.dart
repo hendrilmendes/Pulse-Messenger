@@ -67,7 +67,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           aspectRatio: _controller.value.aspectRatio,
           child: VideoPlayer(_controller),
         )
-            : const CircularProgressIndicator(),
+            : const CircularProgressIndicator.adaptive(),
       ),
     );
   }
@@ -166,7 +166,7 @@ class _FullScreenAudioPlayerState extends State<FullScreenAudioPlayer> {
             ),
             const SizedBox(height: 20),
             _isLoading
-                ? const CircularProgressIndicator()
+                ? const CircularProgressIndicator.adaptive()
                 : Column(
               children: [
                 Slider(

@@ -91,7 +91,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData || chatUserIds.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator.adaptive());
           }
 
           final users = snapshot.data!.docs;

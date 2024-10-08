@@ -128,19 +128,32 @@ class ProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Nome do usuário
                           Text(
                             username,
-                            style: const TextStyle(
-                                fontSize: 24, fontWeight: FontWeight.bold),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24,
+                                ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
+                          // Biografia do usuário
                           Text(
                             userData['bio'] ?? 'Sem biografia...',
-                            style: const TextStyle(fontSize: 16),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
+                          // Linha com contadores de Posts, Seguindo e Seguidores
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
@@ -155,25 +168,22 @@ class ProfileScreen extends StatelessWidget {
                                             .adaptive());
                                   }
 
-                                  if (!postSnapshot.hasData ||
-                                      postSnapshot.data!.docs.isEmpty) {
-                                    return _buildStatColumn('Posts', '0');
-                                  }
-
-                                  // Contar postagens com URLs de mídia válidas
-                                  final postCount =
-                                      postSnapshot.data!.docs.where((doc) {
-                                    final postData =
-                                        doc.data() as Map<String, dynamic>?;
-                                    final fileUrl = postData?['file_url'] ?? '';
-                                    return fileUrl.isNotEmpty &&
-                                        (fileUrl.contains('.jpg') ||
-                                            fileUrl.contains('.png') ||
-                                            fileUrl.contains('.mp4'));
-                                  }).length;
+                                  // Contar postagens válidas
+                                  final postCount = postSnapshot.hasData
+                                      ? postSnapshot.data!.docs.where((doc) {
+                                          final postData = doc.data()
+                                              as Map<String, dynamic>?;
+                                          final fileUrl =
+                                              postData?['file_url'] ?? '';
+                                          return fileUrl.isNotEmpty &&
+                                              (fileUrl.contains('.jpg') ||
+                                                  fileUrl.contains('.png') ||
+                                                  fileUrl.contains('.mp4'));
+                                        }).length
+                                      : 0;
 
                                   return _buildStatColumn(
-                                      'Posts', postCount.toString());
+                                      context, 'Posts', postCount.toString());
                                 },
                               ),
                               StreamBuilder<QuerySnapshot>(
@@ -195,8 +205,8 @@ class ProfileScreen extends StatelessWidget {
                                           ? followingSnapshot.data!.docs.length
                                           : 0;
 
-                                  return _buildStatColumn(
-                                      'Seguindo', followingCount.toString());
+                                  return _buildStatColumn(context, 'Seguindo',
+                                      followingCount.toString());
                                 },
                               ),
                               StreamBuilder<QuerySnapshot>(
@@ -217,8 +227,8 @@ class ProfileScreen extends StatelessWidget {
                                       ? followerSnapshot.data!.docs.length
                                       : 0;
 
-                                  return _buildStatColumn(
-                                      'Seguidores', followerCount.toString());
+                                  return _buildStatColumn(context, 'Seguidores',
+                                      followerCount.toString());
                                 },
                               ),
                             ],
@@ -286,8 +296,8 @@ class ProfileScreen extends StatelessWidget {
                                         if (snapshot.connectionState ==
                                             ConnectionState.waiting) {
                                           return const Center(
-                                              child:
-                                                  CircularProgressIndicator());
+                                              child: CircularProgressIndicator
+                                                  .adaptive());
                                         }
 
                                         final thumbnailPath = snapshot.data;
@@ -365,14 +375,19 @@ class ProfileScreen extends StatelessWidget {
     return names[0][0].toUpperCase();
   }
 
-  Widget _buildStatColumn(String label, String count) {
+  Widget _buildStatColumn(BuildContext context, String label, String count) {
     return Column(
       children: [
         Text(
           count,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
         ),
-        Text(label, style: const TextStyle(color: Colors.grey)),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(),
+        ),
       ],
     );
   }

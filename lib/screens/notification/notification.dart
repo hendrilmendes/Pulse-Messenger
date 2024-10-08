@@ -92,7 +92,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator.adaptive());
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {

@@ -591,7 +591,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   child: CachedNetworkImage(
                     imageUrl: messageData['image'],
                     placeholder: (context, url) =>
-                        const CircularProgressIndicator(),
+                        const CircularProgressIndicator.adaptive(),
                     errorWidget: (context, url, error) =>
                         const Icon(Icons.error),
                     width: 150,
@@ -702,7 +702,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             if (snapshot.hasData) {
               return snapshot.data!;
             }
-            return const CircularProgressIndicator();
+            return const CircularProgressIndicator.adaptive();
           },
         ),
       ),

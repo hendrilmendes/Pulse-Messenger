@@ -156,7 +156,7 @@ class ManagePostsScreen extends StatelessWidget {
                           future: _generateVideoThumbnail(mediaUrl),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(child: CircularProgressIndicator());
+                              return const Center(child: CircularProgressIndicator.adaptive());
                             }
 
                             return ClipRRect(
@@ -168,17 +168,20 @@ class ManagePostsScreen extends StatelessWidget {
                           },
                         )
                       else
-                        Container(
-                          color: Colors.grey[200],
-                          child: Center(
-                            child: Text(
-                              postContent,
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12.0),
+                          child: Container(
+                            color: Colors.grey[200],
+                            child: Center(
+                              child: Text(
+                                postContent,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),

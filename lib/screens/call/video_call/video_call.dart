@@ -170,7 +170,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           canvas: const VideoCanvas(uid: 0),
                         ),
                       )
-                    : const CircularProgressIndicator(),
+                    : const CircularProgressIndicator.adaptive(),
               ),
             ),
           // Exibir nome e foto do usuário remoto

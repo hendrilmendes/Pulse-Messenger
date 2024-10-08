@@ -500,7 +500,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       final lastSeen = doc.data()?['last_seen'] as Timestamp?;
       final lastSeenString =
-      lastSeen != null ? _formatTimes(lastSeen) : 'Unknown';
+          lastSeen != null ? _formatTimes(lastSeen) : 'Unknown';
 
       if (mounted) {
         setState(() {
@@ -659,6 +659,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
   }
 
+  // Função para formatar a data
+  String _formatDate(DateTime date) {
+    return DateFormat('EEEE, d MMMM yyyy').format(date);
+  }
+
+  // Função para verificar se duas datas são o mesmo dia
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -699,14 +711,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           final chatData =
-                          snapshot.data!.data() as Map<String, dynamic>;
+                              snapshot.data!.data() as Map<String, dynamic>;
                           final userId = _auth.currentUser!.uid;
                           final participants =
-                          chatData['participants'] as List<dynamic>;
+                              chatData['participants'] as List<dynamic>;
 
                           // Get the other user ID
                           final otherUserId =
-                          participants.firstWhere((id) => id != userId);
+                              participants.firstWhere((id) => id != userId);
 
                           // Check if the other user is typing
                           bool isOtherUserTyping =
@@ -727,7 +739,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 print('Error parsing date: $e');
                               }
                               lastSeen =
-                              null; // Handle parse error if necessary
+                                  null; // Handle parse error if necessary
                             }
                           }
 
@@ -739,8 +751,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               child: Text(
                                 _userData?['status'] == 'online'
                                     ? isOtherUserTyping
-                                    ? 'Digitando...'
-                                    : 'Online'
+                                        ? 'Digitando...'
+                                        : 'Online'
                                     : 'Última vez visto: ${formatTimestamp(lastSeen)}',
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.grey),
@@ -771,7 +783,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               stream: _messagesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(
+                      child: CircularProgressIndicator.adaptive());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('Sem mensagens'));
@@ -783,7 +796,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   itemBuilder: (context, index) {
                     final messageDoc = snapshot.data!.docs[index];
                     final messageData =
-                    messageDoc.data() as Map<String, dynamic>;
+                        messageDoc.data() as Map<String, dynamic>;
                     final isMe =
                         messageData['sender_id'] == _auth.currentUser!.uid;
                     final isRead = messageData['read'] ?? false;
@@ -797,153 +810,206 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       return Container(); // Ignora mensagens de usuários bloqueados
                     }
 
+                    // Obtenha a data da mensagem
+                    DateTime messageDate =
+                        (messageData['timestamp'] as Timestamp).toDate();
+                    String formattedDate = _formatDate(messageDate);
+
+                    // Obtenha a data da mensagem anterior, se existir
+                    DateTime? previousMessageDate;
+                    if (index < snapshot.data!.docs.length - 1) {
+                      final previousMessageDoc = snapshot.data!.docs[index + 1];
+                      final previousMessageData =
+                          previousMessageDoc.data() as Map<String, dynamic>;
+                      previousMessageDate =
+                          (previousMessageData['timestamp'] as Timestamp)
+                              .toDate();
+                    }
+
+                    // Verifique se a data da mensagem atual é diferente da anterior
+                    bool showDateHeader = previousMessageDate == null ||
+                        !isSameDay(messageDate, previousMessageDate);
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: isMe
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (!isMe)
-                            CircleAvatar(
-                              backgroundImage: CachedNetworkImageProvider(
-                                  _userData?['profile_picture'] ?? ''),
-                              radius: 20,
+                          if (showDateHeader)
+                            Center(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    formattedDate,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Column(
-                              crossAxisAlignment: isMe
-                                  ? CrossAxisAlignment.end
-                                  : CrossAxisAlignment.start,
-                              children: [
-                                if (messageData['text'] != null)
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                      isMe ? Colors.blue : Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      messageData['text'],
-                                      style: TextStyle(
-                                        color:
-                                        isMe ? Colors.white : Colors.black,
+                          Row(
+                            mainAxisAlignment: isMe
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                            children: [
+                              if (!isMe)
+                                CircleAvatar(
+                                  backgroundImage: CachedNetworkImageProvider(
+                                      _userData?['profile_picture'] ?? ''),
+                                  radius: 20,
+                                ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: isMe
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                  children: [
+                                    if (messageData['text'] != null)
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: isMe
+                                              ? Colors.blue
+                                              : Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          messageData['text'],
+                                          style: TextStyle(
+                                            color: isMe
+                                                ? Colors.white
+                                                : Colors.black,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                if (messageData['image'] != null)
-                                  GestureDetector(
-                                    onTap: () => _showMedia(
-                                      context,
-                                      messageData['image'],
-                                      false,
-                                    ),
-                                    child: Card(
-                                      child: CachedNetworkImage(
-                                        imageUrl: messageData['image'],
-                                        placeholder: (context, url) =>
-                                        const CircularProgressIndicator(),
-                                        errorWidget: (context, url, error) =>
-                                        const Icon(Icons.error),
-                                        width: 150,
-                                        height: 150,
-                                        fit: BoxFit.cover,
+                                    if (messageData['image'] != null)
+                                      GestureDetector(
+                                        onTap: () => _showMedia(
+                                          context,
+                                          messageData['image'],
+                                          false,
+                                        ),
+                                        child: Card(
+                                          child: CachedNetworkImage(
+                                            imageUrl: messageData['image'],
+                                            placeholder: (context, url) =>
+                                                const CircularProgressIndicator
+                                                    .adaptive(),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    const Icon(Icons.error),
+                                            width: 150,
+                                            height: 150,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                if (messageData['video'] != null)
-                                  GestureDetector(
-                                    onTap: () => _showMedia(
-                                      context,
-                                      messageData['video'],
-                                      true,
-                                    ),
-                                    child: Card(
-                                      child: FutureBuilder<Widget>(
-                                        future: _buildVideoThumbnail(
-                                            messageData['video']),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.connectionState ==
-                                              ConnectionState.waiting) {
-                                            return const CircularProgressIndicator
-                                                .adaptive();
-                                          } else if (snapshot.hasData) {
-                                            return snapshot.data!;
-                                          } else if (snapshot.hasError) {
-                                            return const Icon(Icons.error);
+                                    if (messageData['video'] != null)
+                                      GestureDetector(
+                                        onTap: () => _showMedia(
+                                          context,
+                                          messageData['video'],
+                                          true,
+                                        ),
+                                        child: Card(
+                                          child: FutureBuilder<Widget>(
+                                            future: _buildVideoThumbnail(
+                                                messageData['video']),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return const CircularProgressIndicator
+                                                    .adaptive();
+                                              } else if (snapshot.hasData) {
+                                                return snapshot.data!;
+                                              } else if (snapshot.hasError) {
+                                                return const Icon(Icons.error);
+                                              } else {
+                                                return const Icon(
+                                                    Icons.video_library);
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    if (messageData['audio'] != null)
+                                      AudioCard(
+                                        audioUrl: messageData['audio'],
+                                        onPlayPausePressed: () {
+                                          final isPlayingNotifier =
+                                              AudioManager()
+                                                  .getIsPlayingNotifier(
+                                                      messageData['audio']);
+
+                                          // Check if the audio is currently playing
+                                          if (isPlayingNotifier.value) {
+                                            _pauseAudio(messageData['audio']);
                                           } else {
-                                            return const Icon(
-                                                Icons.video_library);
+                                            playAudio(messageData['audio']);
+                                          }
+                                        },
+                                        onSliderChanged: (value) {
+                                          AudioManager().seek(
+                                              messageData['audio'],
+                                              Duration(seconds: value.toInt()));
+                                          if (mounted) {
+                                            setState(() {
+                                              currentPosition = Duration(
+                                                  seconds: value.toInt());
+                                            });
                                           }
                                         },
                                       ),
+                                    if (isMe)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: isRead
+                                            ? const Stack(
+                                                children: [
+                                                  Icon(Icons.check,
+                                                      color: Colors.blue,
+                                                      size: 18),
+                                                  Positioned(
+                                                    left: 5,
+                                                    child: Icon(Icons.check,
+                                                        color: Colors.blue,
+                                                        size: 18),
+                                                  ),
+                                                ],
+                                              )
+                                            : const Stack(
+                                                children: [
+                                                  Icon(Icons.check,
+                                                      color: Colors.grey,
+                                                      size: 18),
+                                                  Positioned(
+                                                    left: 5,
+                                                    child: Icon(Icons.check,
+                                                        color: Colors.grey,
+                                                        size: 18),
+                                                  ),
+                                                ],
+                                              ),
+                                      ),
+                                    Text(
+                                      _formatTimesChat(
+                                          messageData['timestamp']),
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.grey),
                                     ),
-                                  ),
-                                if (messageData['audio'] != null)
-                                  AudioCard(
-                                    audioUrl: messageData['audio'],
-                                    onPlayPausePressed: () {
-                                      final isPlayingNotifier = AudioManager()
-                                          .getIsPlayingNotifier(
-                                          messageData['audio']);
-
-                                      // Check if the audio is currently playing
-                                      if (isPlayingNotifier.value) {
-                                        _pauseAudio(messageData['audio']);
-                                      } else {
-                                        playAudio(messageData['audio']);
-                                      }
-                                    },
-                                    onSliderChanged: (value) {
-                                      AudioManager().seek(messageData['audio'],
-                                          Duration(seconds: value.toInt()));
-                                      if (mounted) {
-                                        setState(() {
-                                          currentPosition =
-                                              Duration(seconds: value.toInt());
-                                        });
-                                      }
-                                    },
-                                  ),
-                                if (isMe)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: isRead
-                                        ? const Stack(
-                                      children: [
-                                        Icon(Icons.check,
-                                            color: Colors.blue, size: 18),
-                                        Positioned(
-                                          left: 5,
-                                          child: Icon(Icons.check,
-                                              color: Colors.blue,
-                                              size: 18),
-                                        ),
-                                      ],
-                                    )
-                                        : const Stack(
-                                      children: [
-                                        Icon(Icons.check,
-                                            color: Colors.grey, size: 18),
-                                        Positioned(
-                                          left: 5,
-                                          child: Icon(Icons.check,
-                                              color: Colors.grey,
-                                              size: 18),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                Text(
-                                  _formatTimesChat(messageData['timestamp']),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -959,7 +1025,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               children: [
                 Container(
                   padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,
@@ -1008,16 +1074,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             )
           else
-          ActionBar(
-            isRecording: _isRecording,
-            onCameraPressed: () =>
-                _sendMedia(fromGallery: false, isVideo: false),
-            onGalleryPressed: () => _sendMedia(fromGallery: true),
-            onVideoPressed: () => _sendMedia(fromGallery: false, isVideo: true),
-            onRecordPressed: _isRecording ? _stopRecording : _startRecording,
-            onSendMessage: _sendMessage,
-            messageController: _messageController,
-          ),
+            ActionBar(
+              isRecording: _isRecording,
+              onCameraPressed: () =>
+                  _sendMedia(fromGallery: false, isVideo: false),
+              onGalleryPressed: () => _sendMedia(fromGallery: true),
+              onVideoPressed: () =>
+                  _sendMedia(fromGallery: false, isVideo: true),
+              onRecordPressed: _isRecording ? _stopRecording : _startRecording,
+              onSendMessage: _sendMessage,
+              messageController: _messageController,
+            ),
         ],
       ),
     );

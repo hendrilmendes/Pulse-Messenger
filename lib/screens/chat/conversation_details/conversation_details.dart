@@ -313,7 +313,7 @@ class ConversationDetailsScreen extends StatelessWidget {
                               imageUrl: media['url'],
                               fit: BoxFit.cover,
                               placeholder: (context, url) =>
-                                  const CircularProgressIndicator(),
+                                  const CircularProgressIndicator.adaptive(),
                               errorWidget: (context, url, error) =>
                                   const Icon(Icons.error),
                             ),
@@ -369,7 +369,7 @@ class ConversationDetailsScreen extends StatelessWidget {
                                 imageUrl: media['url'],
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) =>
-                                    const CircularProgressIndicator(),
+                                    const CircularProgressIndicator.adaptive(),
                                 errorWidget: (context, url, error) =>
                                     const Icon(Icons.error),
                               ),
