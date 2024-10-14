@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:social/providers/locale_provider.dart';
 import 'package:social/providers/theme_provider.dart';
@@ -67,7 +68,6 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
@@ -83,6 +83,9 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer3<ThemeModel, LocaleProvider, AuthProvider>(
         builder: (_, themeModel, localeProvider, authProvider, __) {
+          
+          Intl.defaultLocale = localeProvider.locale?.toLanguageTag();
+
           return MaterialApp(
               theme: ThemeData(
                 brightness: Brightness.light,

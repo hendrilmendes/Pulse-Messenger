@@ -533,7 +533,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isCurrentUser ? Colors.blue[200] : Colors.grey[300],
+          color: isCurrentUser ? Colors.blue[50] : Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(

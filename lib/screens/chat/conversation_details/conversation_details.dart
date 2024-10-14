@@ -90,7 +90,6 @@ class ConversationDetailsScreen extends StatelessWidget {
     return false;
   }
 
-
   // Função para bloquear/desbloquear o usuário
   void _toggleBlockUser(BuildContext context, bool isBlocked) async {
     try {
@@ -171,7 +170,7 @@ class ConversationDetailsScreen extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Usuário bloqueado e não e possível visualizar as informações desta conversa.',
+                  'Usuário bloqueado, não é possível visualizar as informações desta conversa.',
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.redAccent,

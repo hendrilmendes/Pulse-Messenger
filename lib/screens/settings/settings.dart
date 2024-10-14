@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:app_settings/app_settings.dart';
 import 'package:feedback/feedback.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +14,6 @@ import 'package:social/screens/settings/about/about.dart';
 import 'package:social/screens/settings/edit_profile/edit_profile.dart';
 import 'package:social/screens/settings/followers/followers.dart';
 import 'package:social/screens/settings/language/language.dart';
-import 'package:social/screens/settings/notifications/notifications.dart';
 import 'package:social/screens/settings/post/post.dart';
 import 'package:social/screens/settings/privacy/privacy.dart';
 import 'package:social/screens/settings/theme/theme.dart';
@@ -125,12 +125,7 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.notifications,
             title: AppLocalizations.of(context)!.notification,
             onTap: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const NotificationsSettingsScreen(),
-                ),
-              );
+              AppSettings.openAppSettings(type: AppSettingsType.notification);
             },
           ),
 

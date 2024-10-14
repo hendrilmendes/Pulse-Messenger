@@ -100,44 +100,6 @@ class PrivacyScreenState extends State<PrivacyScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         children: [
-          // Seção: Quem pode ver meus dados
-          _buildSectionTitle('Quem pode ver meus dados'),
-          _buildPrivacyOption(
-            icon: Icons.visibility,
-            option: 'Última vez vista',
-            value: 'Todos',
-          ),
-          _buildPrivacyOption(
-            icon: Icons.person,
-            option: 'Foto do perfil',
-            value: 'Meus contatos',
-          ),
-          _buildPrivacyOption(
-            icon: Icons.info,
-            option: 'Sobre',
-            value: 'Meus contatos',
-          ),
-          _buildPrivacyOption(
-            icon: Icons.insert_comment,
-            option: 'Status',
-            value: 'Meus contatos',
-          ),
-          const SizedBox(height: 16),
-
-          // Seção: Segurança
-          _buildSectionTitle('Segurança'),
-          _buildPrivacyOption(
-            icon: Icons.check_box,
-            option: 'Exibir notificações de leitura',
-            value: 'Ativado',
-          ),
-          _buildPrivacyOption(
-            icon: Icons.message,
-            option: 'Exibir notificações de digitação',
-            value: 'Ativado',
-          ),
-          const SizedBox(height: 16),
-
           // Seção: Contas bloqueadas
           _buildSectionTitle('Contas bloqueadas'),
           _buildBlockedContactsList(),
@@ -157,23 +119,6 @@ class PrivacyScreenState extends State<PrivacyScreen> {
           color: Colors.grey,
         ),
       ),
-    );
-  }
-
-  Widget _buildPrivacyOption({
-    required IconData icon,
-    required String option,
-    required String value,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blueAccent),
-      title: Text(option,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-      subtitle: Text(value),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () {
-        // Handle option tap
-      },
     );
   }
 
