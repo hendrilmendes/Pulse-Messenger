@@ -11,10 +11,12 @@ Changelog
 - Correções de bugs
 - Ajustes visuais
 - Suporte ao Android 15 melhorado
+- Melhorias nas animações
 
 ### Features
 
 - Suporte ao modo escuro
+- Curta e comente nas postagens
 
 ======================================================
 

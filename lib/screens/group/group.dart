@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:social/providers/manager_audio.dart';
 import 'package:social/screens/group/group_details/group_details.dart';
+import 'package:social/screens/profile/user_profile/user_profile.dart';
 import 'package:social/widgets/chat/action_bar.dart';
 import 'package:social/widgets/chat/audio.dart';
 import 'package:social/widgets/chat/full_screen.dart';
@@ -41,9 +42,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   late Future<Map<String, dynamic>> _groupData;
-
+  late Stream<QuerySnapshot> _messagesStream;
   final _record = AudioRecorder();
   bool _isRecording = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -84,6 +84,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         });
       }
     });
+
+    _messagesStream = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(20)
+        .snapshots();
   }
 
   @override
@@ -111,8 +119,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .add({
       'sender_id': currentUser.uid,
       'sender_name': currentUser.displayName ?? 'Desconhecido',
-      'message': message,
-      'timestamp': FieldValue.serverTimestamp(),
+      'text': message,
+      'timestamp': Timestamp.now(),
+      'read': false,
     });
 
     await _firestore.collection('chats').doc(widget.chatId).update({
@@ -139,6 +148,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
         'sender_id': _auth.currentUser!.uid,
         'timestamp': Timestamp.now(),
+        'read': false,
       });
 
       await FirebaseFirestore.instance
@@ -157,7 +167,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  void showMedia(BuildContext context, String url, bool isVideo) {
+  void _showMedia(BuildContext context, String url, bool isVideo) {
     // Verifica se o URL é um URL de rede válido
     bool isNetworkUrl = url.startsWith('http') || url.startsWith('https');
     if (isNetworkUrl) {
@@ -385,79 +395,406 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
+  // Função para formatar a data
+  String _formatDate(DateTime date) {
+    DateTime now = DateTime.now();
+    DateTime yesterday = now.subtract(const Duration(days: 1));
+
+    if (DateFormat('yyyyMMdd').format(date) ==
+        DateFormat('yyyyMMdd').format(now)) {
+      return 'Hoje';
+    } else if (DateFormat('yyyyMMdd').format(date) ==
+        DateFormat('yyyyMMdd').format(yesterday)) {
+      return 'Ontem';
+    } else {
+      return DateFormat('EEEE, d MMMM yyyy').format(date);
+    }
+  }
+
+  // Função para verificar se duas datas são o mesmo dia
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+  void _checkAndMarkMessagesAsRead(String messageId) {
+    final userId = _auth.currentUser!.uid;
+
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .doc(messageId)
+        .get()
+        .then((doc) {
+      if (doc.exists) {
+        final messageData = doc.data() as Map<String, dynamic>;
+        final senderId = messageData['sender_id'];
+
+        // Marca a mensagem como lida somente se não for do próprio usuário
+        if (senderId != userId && !(messageData['read'] ?? false)) {
+          doc.reference.update({'read': true});
+        }
+      }
+    });
+  }
+
+  Future<Map<String, dynamic>?> _getUserData(String userId) async {
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    return userDoc.data();
+  }
+
+  void _openUserProfile(BuildContext context, String userId, String userName) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => UserProfileScreen(
+          userId: userId,
+          username: userName,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<Map<String, dynamic>>(
-          future: _groupData,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Text('Carregando...');
-            }
+            future: _groupData,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Text('Carregando...');
+              }
 
-            if (!snapshot.hasData || snapshot.data == null) {
-              return const Text('Grupo');
-            }
+              if (!snapshot.hasData || snapshot.data == null) {
+                return const Text('Grupo');
+              }
 
-            final groupData = snapshot.data!;
-            final groupName = groupData['group_name'] ?? 'Grupo';
-            final groupPhotoUrl = groupData['group_image'] ?? '';
+              final groupData = snapshot.data!;
+              final groupName = groupData['group_name'] ?? 'Grupo';
+              final groupPhotoUrl = groupData['group_image'] ?? '';
+              final participants =
+                  groupData['participants'] as List<dynamic>? ?? [];
+              final memberCount = participants.length;
 
-            return GestureDetector(
-              onTap: _navigateToGroupDetails,
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: groupPhotoUrl.isNotEmpty
-                        ? CachedNetworkImageProvider(groupPhotoUrl)
-                        : const AssetImage('assets/default_avatar.png')
-                            as ImageProvider,
-                    radius: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      groupName,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 18),
+              return GestureDetector(
+                onTap: _navigateToGroupDetails,
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: groupPhotoUrl.isNotEmpty
+                          ? CachedNetworkImageProvider(groupPhotoUrl)
+                          : const AssetImage('assets/default_avatar.png')
+                              as ImageProvider,
+                      radius: 20,
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            groupName,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                          const SizedBox(
+                              height: 4), // Espaço entre o nome e a contagem
+                          Text(
+                            '$memberCount membros', // Exibindo a quantidade de membros
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
       ),
       body: Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('chats')
-                  .doc(widget.chatId)
-                  .collection('messages')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                      child: Text('Nenhuma mensagem ainda',
-                          style: TextStyle(fontSize: 16)));
-                }
+                stream: _messagesStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator.adaptive());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                        child: Text('Sem mensagens',
+                            style: TextStyle(fontSize: 16)));
+                  }
 
-                return ListView.builder(
-                  reverse: true,
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    final messageData = snapshot.data!.docs[index];
-                    final isCurrentUser =
-                        messageData['sender_id'] == _auth.currentUser?.uid;
-                    return _buildMessageBubble(messageData, isCurrentUser);
-                  },
-                );
-              },
-            ),
+                  return ListView.builder(
+                    reverse: true,
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      final messageDoc = snapshot.data!.docs[index];
+                      final messageData =
+                          messageDoc.data() as Map<String, dynamic>;
+                      final isMe =
+                          messageData['sender_id'] == _auth.currentUser!.uid;
+                      final isRead = messageData['read'] ?? false;
+
+                      return FutureBuilder<Map<String, dynamic>?>(
+                        future: _getUserData(
+                            messageData['sender_id']), // Chame a função aqui
+                        builder: (context, userSnapshot) {
+                          if (userSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+
+                          final senderUserData = userSnapshot.data;
+                          final senderId = messageData['sender_id'];
+                          final senderName =
+                              senderUserData?['username'] ?? 'Usuário';
+                          final senderProfilePic =
+                              senderUserData?['profile_picture'] ?? '';
+
+                          // Marcar como lida apenas se o usuário atual for o destinatário
+                          if (!isMe && !isRead) {
+                            _checkAndMarkMessagesAsRead(messageDoc.id);
+                          }
+
+                          // Obtenha a data da mensagem
+                          DateTime messageDate =
+                              (messageData['timestamp'] as Timestamp).toDate();
+                          String formattedDate = _formatDate(messageDate);
+
+                          // Obtenha a data da mensagem anterior, se existir
+                          DateTime? previousMessageDate;
+                          if (index < snapshot.data!.docs.length - 1) {
+                            final previousMessageDoc =
+                                snapshot.data!.docs[index + 1];
+                            final previousMessageData = previousMessageDoc
+                                .data() as Map<String, dynamic>;
+                            previousMessageDate =
+                                (previousMessageData['timestamp'] as Timestamp)
+                                    .toDate();
+                          }
+
+                          // Verifique se a data da mensagem atual é diferente da anterior
+                          bool showDateHeader = previousMessageDate == null ||
+                              !isSameDay(messageDate, previousMessageDate);
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showDateHeader)
+                                  Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        formattedDate,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(
+                                  height: 16,
+                                ),
+                                Row(
+                                  mainAxisAlignment: isMe
+                                      ? MainAxisAlignment.end
+                                      : MainAxisAlignment.start,
+                                  children: [
+                                    if (!isMe)
+                                      GestureDetector(
+                                        onTap: () {
+                                          _openUserProfile(
+                                              context, senderId, senderName);
+                                        },
+                                        child: CircleAvatar(
+                                          backgroundImage:
+                                              CachedNetworkImageProvider(
+                                                  senderProfilePic),
+                                          radius: 20,
+                                        ),
+                                      ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment: isMe
+                                            ? CrossAxisAlignment.end
+                                            : CrossAxisAlignment.start,
+                                        children: [
+                                          if (!isMe)
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[300],
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                senderName,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ),
+                                          const SizedBox(height: 4),
+                                          if (messageData['text'] != null)
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: isMe
+                                                    ? Colors.blue
+                                                    : Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: isMe
+                                                      ? Colors.blue
+                                                      : Colors.grey[300]!,
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                messageData['text'],
+                                                style: TextStyle(
+                                                  color: isMe
+                                                      ? Colors.white
+                                                      : Colors.black,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          if (messageData['image'] != null)
+                                            GestureDetector(
+                                              onTap: () => _showMedia(context,
+                                                  messageData['image'], false),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                child: CachedNetworkImage(
+                                                  imageUrl:
+                                                      messageData['image'],
+                                                  placeholder: (context, url) =>
+                                                      const CircularProgressIndicator
+                                                          .adaptive(),
+                                                  errorWidget: (context, url,
+                                                          error) =>
+                                                      const Icon(Icons.error),
+                                                  width: 150,
+                                                  height: 150,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                            ),
+                                          if (messageData['video'] != null)
+                                            GestureDetector(
+                                              onTap: () => _showMedia(context,
+                                                  messageData['video'], true),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                child: FutureBuilder<Widget>(
+                                                  future: _buildVideoThumbnail(
+                                                      messageData['video']),
+                                                  builder: (context, snapshot) {
+                                                    if (snapshot
+                                                            .connectionState ==
+                                                        ConnectionState
+                                                            .waiting) {
+                                                      return const CircularProgressIndicator
+                                                          .adaptive();
+                                                    } else if (snapshot
+                                                        .hasData) {
+                                                      return snapshot.data!;
+                                                    } else {
+                                                      return const Icon(
+                                                          Icons.video_library);
+                                                    }
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                          if (messageData['audio'] != null)
+                                            AudioCard(
+                                              audioUrl: messageData['audio'],
+                                              onPlayPausePressed: () {
+                                                final isPlayingNotifier =
+                                                    AudioManager()
+                                                        .getIsPlayingNotifier(
+                                                            messageData[
+                                                                'audio']);
+                                                isPlayingNotifier.value
+                                                    ? _pauseAudio(
+                                                        messageData['audio'])
+                                                    : playAudio(
+                                                        messageData['audio']);
+                                              },
+                                              onSliderChanged: (value) {
+                                                AudioManager().seek(
+                                                    messageData['audio'],
+                                                    Duration(
+                                                        seconds:
+                                                            value.toInt()));
+                                                if (mounted) {
+                                                  setState(() {
+                                                    currentPosition = Duration(
+                                                        seconds: value.toInt());
+                                                  });
+                                                }
+                                              },
+                                            ),
+                                          const SizedBox(height: 4),
+                                          if (isMe)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 4),
+                                              child: isRead
+                                                  ? const Icon(Icons.check,
+                                                      color: Colors.blue,
+                                                      size: 18)
+                                                  : const Icon(Icons.check,
+                                                      color: Colors.grey,
+                                                      size: 18),
+                                            ),
+                                          Text(
+                                            _formatTimesChat(
+                                                messageData['timestamp']),
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                }),
           ),
           if (_isRecording)
             Row(
@@ -506,205 +843,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             messageController: _messageController,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(DocumentSnapshot messageData, bool isCurrentUser) {
-    final data = messageData.data() as Map<String, dynamic>?;
-
-    final senderName = data != null && data.containsKey('sender_name')
-        ? data['sender_name']
-        : 'Desconhecido';
-
-    final senderId = data?['sender_id'] ?? 'unknown_sender';
-    final messageText =
-        data?.containsKey('message') == true ? data!['message'] : '';
-    final imageUrl = data?.containsKey('image') == true ? data!['image'] : null;
-    final videoUrl = data?.containsKey('video') == true ? data!['video'] : null;
-    final audioUrl = data?.containsKey('audio') == true ? data!['audio'] : null;
-
-    return Align(
-      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: const BoxConstraints(
-          maxWidth: 250, // Set maximum width for the bubble
-        ),
-        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isCurrentUser ? Colors.blue[50] : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment:
-              isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                FutureBuilder<DocumentSnapshot>(
-                  future: _firestore.collection('users').doc(senderId).get(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data!.exists) {
-                      final userData =
-                          snapshot.data!.data() as Map<String, dynamic>;
-                      final userPhotoUrl = userData['profile_picture'] ?? '';
-                      return CircleAvatar(
-                        backgroundImage: userPhotoUrl.isNotEmpty
-                            ? CachedNetworkImageProvider(userPhotoUrl)
-                            : const AssetImage('assets/default_avatar.png')
-                                as ImageProvider,
-                        radius: 15,
-                      );
-                    }
-                    return const CircleAvatar(radius: 15);
-                  },
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    senderName,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            if (messageText.isNotEmpty) _buildMessageText(messageText),
-            if (imageUrl != null)
-              GestureDetector(
-                onTap: () => showMedia(
-                  context,
-                  messageData['image'],
-                  false,
-                ),
-                child: Card(
-                  child: CachedNetworkImage(
-                    imageUrl: messageData['image'],
-                    placeholder: (context, url) =>
-                        const CircularProgressIndicator.adaptive(),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.error),
-                    width: 150,
-                    height: 150,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            if (videoUrl != null)
-              GestureDetector(
-                onTap: () => showMedia(
-                  context,
-                  messageData['video'],
-                  true,
-                ),
-                child: Card(
-                  child: FutureBuilder<Widget>(
-                    future: _buildVideoThumbnail(messageData['video']),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator.adaptive();
-                      } else if (snapshot.hasData) {
-                        return snapshot.data!;
-                      } else if (snapshot.hasError) {
-                        return const Icon(Icons.error);
-                      } else {
-                        return const Icon(Icons.video_library);
-                      }
-                    },
-                  ),
-                ),
-              ),
-            Text(
-              _formatTimesChat(messageData['timestamp']),
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            if (audioUrl != null)
-              AudioCard(
-                audioUrl: messageData['audio'],
-                onPlayPausePressed: () {
-                  final isPlayingNotifier =
-                      AudioManager().getIsPlayingNotifier(messageData['audio']);
-
-                  // Check if the audio is currently playing
-                  if (isPlayingNotifier.value) {
-                    _pauseAudio(messageData['audio']);
-                  } else {
-                    playAudio(messageData['audio']);
-                  }
-                },
-                onSliderChanged: (value) {
-                  AudioManager().seek(
-                      messageData['audio'], Duration(seconds: value.toInt()));
-                  if (mounted) {
-                    setState(() {
-                      currentPosition = Duration(seconds: value.toInt());
-                    });
-                  }
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-// Helper for Avatar
-  Widget buildSenderAvatar(String senderId) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: _firestore.collection('users').doc(senderId).get(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data!.exists) {
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
-          final userPhotoUrl = userData['profile_picture'] ?? '';
-          return CircleAvatar(
-            backgroundImage: userPhotoUrl.isNotEmpty
-                ? CachedNetworkImageProvider(userPhotoUrl)
-                : const AssetImage('assets/default_avatar.png')
-                    as ImageProvider,
-            radius: 16,
-          );
-        }
-        return const CircleAvatar(radius: 16);
-      },
-    );
-  }
-
-// Helper for Message Text
-  Widget _buildMessageText(String messageText) {
-    return Text(
-      messageText,
-      style: const TextStyle(fontSize: 15),
-    );
-  }
-
-// Helper for Video Content
-  Widget buildVideoContent(String videoUrl) {
-    return GestureDetector(
-      onTap: () => showMedia(context, videoUrl, true),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxHeight: 200, // Limit maximum height for videos
-          maxWidth: 200, // Limit maximum width for videos
-        ),
-        child: FutureBuilder<Widget>(
-          future: _buildVideoThumbnail(videoUrl),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return snapshot.data!;
-            }
-            return const CircularProgressIndicator.adaptive();
-          },
-        ),
       ),
     );
   }

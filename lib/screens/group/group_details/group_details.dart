@@ -151,9 +151,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       isScrollControlled: true,
       builder: (_) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.5,
+          initialChildSize: 0.9,
           minChildSize: 0.3,
-          maxChildSize: 0.7,
+          maxChildSize: 0.9,
           expand: false,
           builder: (_, controller) {
             return Container(
@@ -194,6 +194,110 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     );
   }
 
+  void _addMembers() async {
+    // Aqui você pode buscar todos os usuários para mostrar em uma lista
+    final allUsersSnapshot =
+        await FirebaseFirestore.instance.collection('users').get();
+
+    final allUsers = allUsersSnapshot.docs.map((doc) => doc.data()).toList();
+
+    showModalBottomSheet(
+      // ignore: use_build_context_synchronously
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (BuildContext context, ScrollController controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: ListView(
+                controller: controller,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.9,
+                    width: MediaQuery.of(context).size.width,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: Column(
+                        children: [
+                          AppBar(
+                            title: const Text(
+                              'Adicionar Membros',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            centerTitle: true,
+                            elevation: 0.5,
+                            automaticallyImplyLeading: false,
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: allUsers.length,
+                              itemBuilder: (context, index) {
+                                final user = allUsers[index];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundImage: user['profile_picture'] !=
+                                                null &&
+                                            user['profile_picture'].isNotEmpty
+                                        ? CachedNetworkImageProvider(
+                                            user['profile_picture'])
+                                        : const AssetImage(
+                                                'assets/default_avatar.png')
+                                            as ImageProvider,
+                                  ),
+                                  title: Text(user['username']),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.add),
+                                    onPressed: () {
+                                      _addMemberToGroup(user[
+                                          'userId']); // Adicione o ID do usuário aqui
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _addMemberToGroup(String userId) async {
+    if (userId.isEmpty) return;
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .update({
+      'participants': FieldValue.arrayUnion([userId]),
+    });
+
+    // Fechar o modal após adicionar
+    // ignore: use_build_context_synchronously
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -211,6 +315,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               onPressed: () {
                 _editGroup(context);
               },
+            ),
+          if (isAdmin) // Exibe o botão de adicionar membros apenas para o administrador
+            IconButton(
+              icon: const Icon(Icons.group_add),
+              onPressed: _addMembers,
             ),
         ],
       ),

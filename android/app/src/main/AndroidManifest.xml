@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
 
     <queries>
@@ -32,7 +34,7 @@
     </queries>
 
     <application
-        android:label="Pulse Messenger"
+        android:label="Pulse"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

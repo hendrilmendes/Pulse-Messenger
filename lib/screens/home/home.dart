@@ -46,12 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
-
   Future<void> _getUserProfilePicture() async {
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
@@ -68,9 +62,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages.isEmpty
-          ? const Center(child: CircularProgressIndicator.adaptive())
-          : _pages[_currentIndex],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: _pages.isEmpty
+            ? const Center(child: CircularProgressIndicator.adaptive())
+            : _pages[_currentIndex],
+      ),
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           indicatorColor:
@@ -82,7 +82,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: NavigationBar(
-          onDestinationSelected: _onItemTapped,
+          onDestinationSelected: (int index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
           selectedIndex: _currentIndex,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [

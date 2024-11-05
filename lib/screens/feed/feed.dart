@@ -232,7 +232,7 @@ class FeedScreen extends StatelessWidget {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return SizedBox(
-                        height: 200, // Adjust height based on your needs
+                        height: 200,
                         child: ListView.builder(
                           itemCount: 5,
                           itemBuilder: (context, index) {
@@ -295,7 +295,7 @@ class FeedScreen extends StatelessWidget {
                   },
                 );
               },
-              childCount: 1, // Este número pode ser ajustado se necessário
+              childCount: 1,
             ),
           ),
         ],

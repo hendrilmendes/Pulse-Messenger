@@ -1,4 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social/screens/comments/comments.dart';
@@ -7,8 +9,9 @@ import 'package:social/widgets/video/video_player.dart';
 
 class PostDetailsScreen extends StatelessWidget {
   final String postId;
+  final _auth = FirebaseAuth.instance;
 
-  const PostDetailsScreen({required this.postId, super.key});
+  PostDetailsScreen({required this.postId, super.key});
 
   Future<void> _likePost(String postId, String userId) async {
     final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
@@ -142,9 +145,41 @@ class PostDetailsScreen extends StatelessWidget {
     return url.contains(".mp4") || url.contains(".mov") || url.contains(".avi");
   }
 
+  Future<bool> isPostSaved(String postId, String userId) async {
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+    final userDoc = await userRef.get();
+    final savedPosts = userDoc.data()?['saved_posts'] as List? ?? [];
+    return savedPosts.contains(postId);
+  }
+
+  Future<void> _savePost(String postId, String userId) async {
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+    try {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final userSnapshot = await transaction.get(userRef);
+        if (!userSnapshot.exists) {
+          transaction.set(userRef, {'saved_posts': []});
+        }
+
+        final savedPosts = userSnapshot.data()?['saved_posts'] as List? ?? [];
+        if (savedPosts.contains(postId)) {
+          savedPosts.remove(postId);
+        } else {
+          savedPosts.add(postId);
+        }
+
+        transaction.update(userRef, {'saved_posts': savedPosts});
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print("Erro ao salvar postagem: $e");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const userId = 'user_current_id';
+    final userId = _auth.currentUser!.uid;
 
     return Scaffold(
       body: CustomScrollView(
@@ -173,35 +208,34 @@ class PostDetailsScreen extends StatelessWidget {
                     final fileUrl = postData['file_url'] ?? '';
                     final content = postData['content'] ?? 'Sem legenda';
 
-                    // Verificar se é um vídeo ou imagem
                     if (fileUrl.isNotEmpty) {
                       return _isVideo(fileUrl)
                           ? AspectRatio(
                               aspectRatio: 16 / 9,
                               child: VideoPlayerWidget(url: fileUrl),
                             )
-                          : InteractiveViewer(
-                              child: Image(
-                                image: CachedNetworkImageProvider(fileUrl),
-                                fit: BoxFit.contain,
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: CachedNetworkImage(
+                                imageUrl: fileUrl,
+                                fit: BoxFit.cover,
                               ),
                             );
-                    } else if (content.isNotEmpty) {
+                    } else {
                       return Center(
-                        child: Container(
+                        child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Text(
-                            content.isNotEmpty ? content : 'Sem legenda',
+                            content,
                             style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       );
-                    } else {
-                      return const SizedBox.shrink();
                     }
                   },
                 ),
@@ -213,7 +247,9 @@ class PostDetailsScreen extends StatelessWidget {
           SliverList(
             delegate: SliverChildListDelegate(
               [
-                StreamBuilder<DocumentSnapshot>(
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('posts')
                         .doc(postId)
@@ -229,7 +265,6 @@ class PostDetailsScreen extends StatelessWidget {
                             child: Text('Post não encontrado.'));
                       }
 
-                      // Conteúdo do post
                       final postData =
                           snapshot.data!.data() as Map<String, dynamic>;
                       final userPhoto = postData['user_photo'] ?? '';
@@ -244,122 +279,105 @@ class PostDetailsScreen extends StatelessWidget {
                           .toList();
                       final isLiked = likes.contains(userId);
 
-                      return FutureBuilder<int>(
-                        future: _getCommentsCount(postId),
-                        builder: (context, commentsSnapshot) {
-                          final commentsCount = commentsSnapshot.data ?? 0;
+                      return FutureBuilder<bool>(
+                        future: isPostSaved(postId, userId),
+                        builder: (context, savedSnapshot) {
+                          final isSaved = savedSnapshot.data ?? false;
 
-                          if (commentsSnapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
+                          return FutureBuilder<int>(
+                            future: _getCommentsCount(postId),
+                            builder: (context, commentsSnapshot) {
+                              final commentsCount = commentsSnapshot.data ?? 0;
 
-                          return Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundImage: userPhoto.isNotEmpty
-                                          ? CachedNetworkImageProvider(
-                                              userPhoto)
-                                          : null,
-                                      child: userPhoto.isEmpty
-                                          ? const Icon(Icons.person)
-                                          : null,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      username,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 25,
+                                        backgroundImage: userPhoto.isNotEmpty
+                                            ? CachedNetworkImageProvider(
+                                                userPhoto)
+                                            : null,
+                                        child: userPhoto.isEmpty
+                                            ? const Icon(Icons.person)
+                                            : null,
                                       ),
-                                    ),
-                                    const Spacer(),
-                                    IconButton(
-                                      icon: const Icon(Icons.bookmark_border),
-                                      onPressed: () {
-                                        // Add bookmark logic here
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  content,
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        isLiked
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: isLiked ? Colors.red : null,
-                                      ),
-                                      onPressed: () {
-                                        _likePost(postId, userId);
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${likes.length} curtidas',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      '$commentsCount comentários',
-                                      style: const TextStyle(
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        username,
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 14),
-                                    ),
-                                    const Spacer(),
-                                    IconButton(
-                                      icon: const Icon(Icons.share),
-                                      onPressed: () =>
-                                          _showShareOptions(context),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                            ),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      IconButton(
+                                        icon: Icon(
+                                          isSaved
+                                              ? Icons.bookmark
+                                              : Icons.bookmark_border,
+                                        ),
+                                        onPressed: () {
+                                          _savePost(postId, userId);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    content,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          isLiked
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: isLiked ? Colors.red : null,
+                                        ),
+                                        onPressed: () {
+                                          _likePost(postId, userId);
+                                        },
+                                      ),
+                                      Text('${likes.length} curtidas'),
+                                      const Spacer(),
+                                      IconButton(
+                                        icon: const Icon(Icons.comment),
+                                        onPressed: () async {
+                                          final postOwnerId =
+                                              await _getPostOwnerId(postId);
+                                          // ignore: use_build_context_synchronously
+                                          _showComments(context, postOwnerId);
+                                        },
+                                      ),
+                                      Text('$commentsCount comentários'),
+                                      const Spacer(),
+                                      IconButton(
+                                        icon: const Icon(Icons.share),
+                                        onPressed: () {
+                                          _showShareOptions(context);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
                       );
-                    }),
+                    },
+                  ),
+                ),
               ],
             ),
           ),
         ],
-      ),
-      floatingActionButton: FutureBuilder<String>(
-        future: _getPostOwnerId(postId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          }
-
-          if (!snapshot.hasData) {
-            return const SizedBox.shrink();
-          }
-
-          final postOwnerId = snapshot.data!;
-
-          return FloatingActionButton(
-            onPressed: () => _showComments(context, postOwnerId),
-            child: const Icon(Icons.comment),
-          );
-        },
       ),
     );
   }

@@ -1,4 +1,3 @@
-// lib/widgets/action_bar.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -63,42 +62,61 @@ class _ActionBarState extends State<ActionBar> {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
+      child: Column(
         children: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.blue),
-            onPressed: _showActionModal,
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextField(
-                controller: widget.messageController,
-                decoration: InputDecoration(
-                  hintText: AppLocalizations.of(context)!.hintText,
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-                onSubmitted: widget.onSendMessage,
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.more_horiz, color: Colors.blue),
+                onPressed: _showActionModal,
               ),
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              widget.isRecording ? Icons.stop : Icons.mic,
-              color: widget.isRecording ? Colors.red : Colors.blue,
-            ),
-            onPressed: widget.onRecordPressed,
-          ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.blue),
-            onPressed: () =>
-                widget.onSendMessage(widget.messageController.text),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: TextField(
+                    controller: widget.messageController,
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.hintText,
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    onChanged: (text) {
+                      setState(() {});
+                    },
+                    onSubmitted: (text) {
+                      if (text.isNotEmpty) {
+                        widget.onSendMessage(text);
+                        widget.messageController.clear();
+                      }
+                    },
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  widget.messageController.text.isNotEmpty
+                      ? Icons.send
+                      : (widget.isRecording ? Icons.stop : Icons.mic),
+                  color: widget.messageController.text.isNotEmpty
+                      ? Colors.blue
+                      : (widget.isRecording ? Colors.red : Colors.blue),
+                ),
+                onPressed: () {
+                  if (widget.messageController.text.isNotEmpty) {
+                    widget.onSendMessage(widget.messageController.text);
+                    widget.messageController.clear();
+                  } else {
+                    widget.onRecordPressed();
+                  }
+                },
+              ),
+            ],
           ),
         ],
       ),

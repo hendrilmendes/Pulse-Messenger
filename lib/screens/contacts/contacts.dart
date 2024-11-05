@@ -68,7 +68,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 : () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      CupertinoPageRoute(
                         builder: (context) => CreateGroupScreen(
                           selectedContacts: selectedContacts,
                         ),

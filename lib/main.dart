@@ -1,4 +1,5 @@
 import 'package:feedback/feedback.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -17,6 +18,10 @@ import 'package:social/screens/login/login.dart';
 import 'package:social/services/notification.dart';
 import 'providers/auth_provider.dart';
 
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -29,6 +34,10 @@ void main() async {
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()!
       .requestNotificationsPermission();
+
+  await Firebase.initializeApp();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(
     ChangeNotifierProvider(
@@ -83,7 +92,6 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer3<ThemeModel, LocaleProvider, AuthProvider>(
         builder: (_, themeModel, localeProvider, authProvider, __) {
-          
           Intl.defaultLocale = localeProvider.locale?.toLanguageTag();
 
           return MaterialApp(
@@ -105,6 +113,16 @@ class MyApp extends StatelessWidget {
               locale: localeProvider.locale,
               supportedLocales: AppLocalizations.supportedLocales,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
+              localeResolutionCallback: (locale, supportedLocales) {
+                for (var supportedLocale in supportedLocales) {
+                  if (supportedLocale.languageCode == locale?.languageCode &&
+                      supportedLocale.countryCode == locale?.countryCode) {
+                    return supportedLocale;
+                  }
+                }
+
+                return supportedLocales.first;
+              },
               debugShowCheckedModeBanner: false,
               home: const AuthWrapper(),
               onGenerateRoute: (RouteSettings settings) {

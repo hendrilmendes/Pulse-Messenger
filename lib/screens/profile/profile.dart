@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:social/screens/settings/followers/followers.dart';
+import 'package:social/screens/settings/post/post.dart';
 import 'package:social/widgets/profile/shimmer_profile.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:social/providers/auth_provider.dart';
@@ -45,6 +47,24 @@ class ProfileScreen extends StatelessWidget {
     return filePath;
   }
 
+  void _openPostsScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => const ManagePostsScreen(),
+      ),
+    );
+  }
+
+  void _openFollowingScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => const FollowManagementScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -67,7 +87,7 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => _openSettings(context),
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.menu),
           ),
         ],
       ),
@@ -183,7 +203,11 @@ class ProfileScreen extends StatelessWidget {
                                       : 0;
 
                                   return _buildStatColumn(
-                                      context, 'Posts', postCount.toString());
+                                    context,
+                                    'Posts',
+                                    postCount.toString(),
+                                    () => _openPostsScreen(context),
+                                  );
                                 },
                               ),
                               StreamBuilder<QuerySnapshot>(
@@ -205,8 +229,12 @@ class ProfileScreen extends StatelessWidget {
                                           ? followingSnapshot.data!.docs.length
                                           : 0;
 
-                                  return _buildStatColumn(context, 'Seguindo',
-                                      followingCount.toString());
+                                  return _buildStatColumn(
+                                    context,
+                                    'Seguindo',
+                                    followingCount.toString(),
+                                    () => _openFollowingScreen(context),
+                                  );
                                 },
                               ),
                               StreamBuilder<QuerySnapshot>(
@@ -227,8 +255,12 @@ class ProfileScreen extends StatelessWidget {
                                       ? followerSnapshot.data!.docs.length
                                       : 0;
 
-                                  return _buildStatColumn(context, 'Seguidores',
-                                      followerCount.toString());
+                                  return _buildStatColumn(
+                                    context,
+                                    'Seguidores',
+                                    followerCount.toString(),
+                                    () => _openFollowingScreen(context),
+                                  );
                                 },
                               ),
                             ],
@@ -375,20 +407,29 @@ class ProfileScreen extends StatelessWidget {
     return names[0][0].toUpperCase();
   }
 
-  Widget _buildStatColumn(BuildContext context, String label, String count) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-        ),
-      ],
+  Widget _buildStatColumn(
+      BuildContext context, String label, String count, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import 'package:social/screens/post/post_details/post_details.dart';
 import 'package:social/screens/profile/user_profile/user_profile.dart';
 import 'package:social/services/notification.dart';
@@ -257,6 +258,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _formatDate(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    final yesterday = now.subtract(const Duration(days: 1));
+
+    if (difference.inDays == 0) {
+      return 'Hoje';
+    } else if (DateFormat('yyyyMMdd').format(dateTime) ==
+        DateFormat('yyyyMMdd').format(yesterday)) {
+      return 'Ontem';
+    } else if (difference.inDays < 7) {
+      // Mostra o nome do dia da semana se for menos de uma semana atrás
+      return DateFormat('EEEE').format(dateTime);
+    } else {
+      // Mostra a data completa para notificações mais antigas
+      return DateFormat('d MMMM yyyy').format(dateTime);
+    }
   }
 }

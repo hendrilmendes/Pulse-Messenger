@@ -11,8 +11,11 @@ class LanguageScreen extends StatelessWidget {
     return Consumer<LocaleProvider>(
       builder: (context, localeProvider, child) {
         Locale? currentLocale = localeProvider.locale;
-        String currentLanguage =
-            _getLanguageName(currentLocale?.languageCode ?? 'pt');
+        
+        // Se o idioma não foi manualmente selecionado, use o idioma do dispositivo
+        String currentLanguage = currentLocale != null 
+            ? _getLanguageName(currentLocale.languageCode) 
+            : _getLanguageName(Localizations.localeOf(context).languageCode);
 
         return Scaffold(
           appBar: AppBar(
@@ -70,7 +73,6 @@ class LanguageScreen extends StatelessWidget {
         return 'Português';
       case 'es':
         return 'Español';
-
       default:
         return 'Português';
     }

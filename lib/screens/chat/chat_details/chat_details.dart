@@ -661,7 +661,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   // Função para formatar a data
   String _formatDate(DateTime date) {
-    return DateFormat('EEEE, d MMMM yyyy').format(date);
+    DateTime now = DateTime.now();
+    DateTime yesterday = now.subtract(const Duration(days: 1));
+
+    if (DateFormat('yyyyMMdd').format(date) ==
+        DateFormat('yyyyMMdd').format(now)) {
+      return 'Hoje';
+    } else if (DateFormat('yyyyMMdd').format(date) ==
+        DateFormat('yyyyMMdd').format(yesterday)) {
+      return 'Ontem';
+    } else {
+      return DateFormat('EEEE, d MMMM yyyy').format(date);
+    }
   }
 
   // Função para verificar se duas datas são o mesmo dia
@@ -787,7 +798,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       child: CircularProgressIndicator.adaptive());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('Sem mensagens'));
+                  return const Center(
+                      child: Text('Sem mensagens',
+                          style: TextStyle(fontSize: 16)));
                 }
 
                 return ListView.builder(
@@ -838,22 +851,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         children: [
                           if (showDateHeader)
                             Center(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(
-                                    formattedDate,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  formattedDate,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
                             ),
+                          SizedBox(
+                            height: 16,
+                          ),
                           Row(
                             mainAxisAlignment: isMe
                                 ? MainAxisAlignment.end
@@ -898,7 +915,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                           messageData['image'],
                                           false,
                                         ),
-                                        child: Card(
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                           child: CachedNetworkImage(
                                             imageUrl: messageData['image'],
                                             placeholder: (context, url) =>
@@ -920,7 +939,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                           messageData['video'],
                                           true,
                                         ),
-                                        child: Card(
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                           child: FutureBuilder<Widget>(
                                             future: _buildVideoThumbnail(
                                                 messageData['video']),
