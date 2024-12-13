@@ -248,7 +248,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                 right: 10,
                                 child: LinearProgressIndicator(
                                   value: _progress,
-                                  backgroundColor: Colors.grey.withOpacity(0.5),
+                                  backgroundColor: Colors.grey.withValues(),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
                                           Colors.white),

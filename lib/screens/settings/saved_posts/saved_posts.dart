@@ -174,7 +174,7 @@ class SavedPostsScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8.0, vertical: 4.0),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
+                                color: Colors.black.withValues(),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               child: Text(

@@ -139,7 +139,8 @@ class _StoriesScreenState extends State<StoriesScreen> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator.adaptive());
+                    return const Center(
+                        child: CircularProgressIndicator.adaptive());
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -203,7 +204,6 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                     : null,
                               ),
                             ),
-                            
                             if (storyContent.isNotEmpty)
                               Positioned(
                                 bottom: 8,
@@ -212,7 +212,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0, vertical: 4.0),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   child: Text(

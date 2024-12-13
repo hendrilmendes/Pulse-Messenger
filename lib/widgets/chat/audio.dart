@@ -49,7 +49,7 @@ class AudioCard extends StatelessWidget {
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.blueAccent.withOpacity(0.2),
+                            color: Colors.blueAccent.withValues(),
                           ),
                           child: IconButton(
                             icon: Icon(
@@ -57,7 +57,7 @@ class AudioCard extends StatelessWidget {
                               size: 24,
                             ),
                             onPressed: onPlayPausePressed,
-                            color: Colors.blueAccent,
+                            color: Colors.white,
                             splashRadius: 20,
                           ),
                         ),
@@ -80,10 +80,10 @@ class AudioCard extends StatelessWidget {
                                           enabledThumbRadius: 6),
                                       activeTrackColor: Colors.blueAccent,
                                       inactiveTrackColor:
-                                          Colors.blueAccent.withOpacity(0.3),
+                                          Colors.blueAccent.withValues(),
                                       thumbColor: Colors.blueAccent,
                                       overlayColor:
-                                          Colors.blueAccent.withOpacity(0.2),
+                                          Colors.blueAccent.withValues(),
                                       valueIndicatorColor: Colors.blueAccent,
                                       valueIndicatorTextStyle: const TextStyle(
                                         color: Colors.white,
@@ -94,9 +94,7 @@ class AudioCard extends StatelessWidget {
                                   ),
                                   child: Slider(
                                     value: currentPositionValue,
-                                    max: maxDuration > 0
-                                        ? maxDuration
-                                        : 1, // Evitar max = 0
+                                    max: maxDuration > 0 ? maxDuration : 1,
                                     min: 0,
                                     onChanged: onSliderChanged,
                                   ),
