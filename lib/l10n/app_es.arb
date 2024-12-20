@@ -50,7 +50,7 @@
     "@desconnect": {},
     "ok": "OK",
     "@ok": {},
-    "noComment": "No hay comentarios disponibles 😅",
+    "noComment": "No hay comentarios disponibles",
     "@noComment": {},
     "hintText": "Escribe tu mensaje...",
     "@hintText": {},
@@ -151,5 +151,7 @@
     "confirmDelete": "Eliminar Comentario",
     "@confirmDelete": {},
     "confirmDeleteSub": "¿Realmente deseas eliminar este comentario?",
-    "@confirmDeleteSub": {}
+    "@confirmDeleteSub": {},
+    "savedPosts": "Publicaciones Guardadas,
+    "@savedPosts": {}
 }

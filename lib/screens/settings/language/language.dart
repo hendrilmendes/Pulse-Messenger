@@ -29,14 +29,9 @@ class LanguageScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              Text(
-                'Idioma atual: $currentLanguage',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
               _buildLanguageOption(context, 'Português', Icons.language, 'pt'),
               _buildLanguageOption(context, 'Español', Icons.language, 'es'),
+              _buildLanguageOption(context, 'English', Icons.language, 'en'),
             ],
           ),
         );
@@ -73,6 +68,8 @@ class LanguageScreen extends StatelessWidget {
         return 'Português';
       case 'es':
         return 'Español';
+      case 'en':
+        return 'English';  
       default:
         return 'Português';
     }

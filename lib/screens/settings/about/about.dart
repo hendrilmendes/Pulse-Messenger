@@ -62,11 +62,30 @@ class _AboutPageState extends State<AboutPage> {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              'Copyright © Hendril Mendes, $currentYear',
+              'Copyright © Hendril Mendes, 2024-$currentYear',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
           const SizedBox(height: 10),
+          // App Version and Build Section
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${AppLocalizations.of(context)!.version}: $appVersion',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Build: $appBuild',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+        
           const Divider(),
 
           // Privacy Policy
@@ -113,25 +132,6 @@ class _AboutPageState extends State<AboutPage> {
               );
             },
           ),
-
-          // App Version and Build Section
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${AppLocalizations.of(context)!.version}: $appVersion',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  'Build: $appBuild',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
           ),
         ],
       ),

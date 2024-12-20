@@ -90,7 +90,7 @@ class SettingsScreen extends StatelessWidget {
           _buildListTile(
             context,
             icon: Icons.bookmark,
-            title: 'Postagens Salvas',
+            title: AppLocalizations.of(context)!.savedPosts,
             onTap: () {
               Navigator.push(
                 context,
