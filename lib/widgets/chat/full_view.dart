@@ -59,14 +59,13 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Center(
         child: _controller.value.isInitialized
             ? AspectRatio(
-          aspectRatio: _controller.value.aspectRatio,
-          child: VideoPlayer(_controller),
-        )
+                aspectRatio: _controller.value.aspectRatio,
+                child: VideoPlayer(_controller),
+              )
             : const CircularProgressIndicator.adaptive(),
       ),
     );
@@ -151,7 +150,6 @@ class _FullScreenAudioPlayerState extends State<FullScreenAudioPlayer> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Center(
         child: Column(
@@ -168,19 +166,19 @@ class _FullScreenAudioPlayerState extends State<FullScreenAudioPlayer> {
             _isLoading
                 ? const CircularProgressIndicator.adaptive()
                 : Column(
-              children: [
-                Slider(
-                  value: _currentPosition.inMilliseconds.toDouble(),
-                  max: _totalDuration.inMilliseconds.toDouble(),
-                  onChanged: (value) {
-                    _seekTo(value);
-                  },
-                ),
-                Text(
-                  '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
-                ),
-              ],
-            ),
+                    children: [
+                      Slider(
+                        value: _currentPosition.inMilliseconds.toDouble(),
+                        max: _totalDuration.inMilliseconds.toDouble(),
+                        onChanged: (value) {
+                          _seekTo(value);
+                        },
+                      ),
+                      Text(
+                        '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
+                      ),
+                    ],
+                  ),
             Text(_isPlaying ? 'Tocando...' : 'Pausado'),
           ],
         ),

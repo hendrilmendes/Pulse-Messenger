@@ -16,6 +16,7 @@ import 'package:social/screens/comments/comments.dart';
 import 'package:social/screens/home/home.dart';
 import 'package:social/screens/login/login.dart';
 import 'package:social/services/notification.dart';
+import 'package:social/services/presense.dart';
 import 'providers/auth_provider.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -167,6 +168,9 @@ class AuthWrapper extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
 
     if (authProvider.isAuthenticated) {
+      final presenceService = PresenceService();
+      presenceService.setUserOnline();
+
       return const HomeScreen();
     } else {
       return LoginScreen();

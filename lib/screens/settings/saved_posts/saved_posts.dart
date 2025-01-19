@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:social/screens/post/post_details/post_details.dart';
 
@@ -44,12 +45,11 @@ class SavedPostsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Postagens Salvas',
+        title: Text(
+          AppLocalizations.of(context)!.savedPosts,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: FutureBuilder<List<String>>(
         future: _getSavedPosts(),
@@ -59,7 +59,8 @@ class SavedPostsScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhuma postagem salva.'));
+            return Center(
+                child: Text(AppLocalizations.of(context)!.noSavedPosts));
           }
 
           final savedPosts = snapshot.data!;

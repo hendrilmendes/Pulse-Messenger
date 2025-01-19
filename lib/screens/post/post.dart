@@ -69,7 +69,6 @@ class _PostScreenState extends State<PostScreen> {
         _selectedFile = File(pickedFile.path);
         _fileType = type;
 
-        // Dispose previous controllers if necessary
         if (_fileType == 'video') {
           _initializeVideo(_selectedFile!);
         } else {
@@ -108,7 +107,7 @@ class _PostScreenState extends State<PostScreen> {
             aspectRatio: adjustedAspectRatio,
           );
 
-          setState(() {}); // Rebuild para mostrar o player de vídeo
+          setState(() {});
         }
       }).catchError((error) {
         if (kDebugMode) {
@@ -261,7 +260,6 @@ class _PostScreenState extends State<PostScreen> {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

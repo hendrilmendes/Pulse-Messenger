@@ -145,7 +145,6 @@ class _CallScreenState extends State<CallScreen> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Center(
         child: _remoteUid != null

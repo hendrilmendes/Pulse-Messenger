@@ -12,18 +12,22 @@ class ManagePostsScreen extends StatelessWidget {
   Future<void> _deletePost(BuildContext context, String postId) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
-      barrierDismissible: false, // Não permite fechar a caixa de diálogo ao tocar fora dela
+      barrierDismissible:
+          false, // Não permite fechar a caixa de diálogo ao tocar fora dela
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
-          content: const Text('Você tem certeza de que deseja excluir esta postagem?'),
+          content: const Text(
+              'Você tem certeza de que deseja excluir esta postagem?'),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Retorna false para não excluir
+              onPressed: () => Navigator.of(context)
+                  .pop(false), // Retorna false para não excluir
               child: const Text('Cancelar'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(true), // Retorna true para excluir
+              onPressed: () =>
+                  Navigator.of(context).pop(true), // Retorna true para excluir
               child: const Text('Excluir'),
             ),
           ],
@@ -48,7 +52,8 @@ class ManagePostsScreen extends StatelessWidget {
     if (thumbnail != null) {
       return Image.memory(thumbnail, fit: BoxFit.cover);
     } else {
-      return const Center(child: Icon(Icons.video_library, size: 50, color: Colors.grey));
+      return const Center(
+          child: Icon(Icons.video_library, size: 50, color: Colors.grey));
     }
   }
 
@@ -74,7 +79,6 @@ class ManagePostsScreen extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -122,10 +126,12 @@ class ManagePostsScreen extends StatelessWidget {
                             onTap: () => _openPost(context, post.id),
                           ),
                           ListTile(
-                            leading: const Icon(Icons.delete, color: Colors.red),
+                            leading:
+                                const Icon(Icons.delete, color: Colors.red),
                             title: const Text('Excluir Postagem'),
                             onTap: () {
-                              Navigator.of(context).pop(); // Fecha o bottom sheet
+                              Navigator.of(context)
+                                  .pop(); // Fecha o bottom sheet
                               _deletePost(context, postId);
                             },
                           ),
@@ -155,8 +161,10 @@ class ManagePostsScreen extends StatelessWidget {
                         FutureBuilder<Widget>(
                           future: _generateVideoThumbnail(mediaUrl),
                           builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(child: CircularProgressIndicator.adaptive());
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator.adaptive());
                             }
 
                             return ClipRRect(

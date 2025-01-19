@@ -82,7 +82,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final fileName = pickedFile.name;
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_pictures')
+          .child('profile_picture')
           .child(fileName);
 
       try {
@@ -116,7 +116,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         actions: [
           IconButton(
             onPressed: _saveChanges,

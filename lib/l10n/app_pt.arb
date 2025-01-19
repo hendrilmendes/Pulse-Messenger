@@ -153,5 +153,13 @@
     "confirmDeleteSub": "Deseja realmente apagar esse comentário?",
     "@confirmDeleteSub": {},
     "savedPosts": "Postagens Salvas",
-    "@savedPosts": {}
+    "@savedPosts": {},
+    "noSavedPosts": "Não há postagens salvas",
+    "@noSavedPosts": {},
+    "noUser": "Não foi encontrado esse usuário",
+    "@noUser": {},
+    "noMedia": "Nenhum post com mídia encontrado",
+    "@noMedia": {},
+    "changeLanguage": "Idioma alterado para",
+    "@changeLanguage": {}
 }

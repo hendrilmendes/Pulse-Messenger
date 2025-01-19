@@ -1,8 +1,9 @@
-import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:social/screens/story/story_view/story_view.dart';
+import 'package:video_player/video_player.dart';
 
 class StoryDetailScreen extends StatefulWidget {
   final String userId;
@@ -15,19 +16,40 @@ class StoryDetailScreen extends StatefulWidget {
 
 class _StoryDetailScreenState extends State<StoryDetailScreen> {
   final PageController _pageController = PageController();
-  int _currentPage = 0;
-  Timer? _timer;
   List<Map<String, dynamic>> _stories = [];
   bool _hasError = false;
   String _errorMessage = '';
-  double _progress = 0.0;
-  bool _isPaused = false;
-  Timer? _progressTimer;
+  VideoPlayerController? _videoPlayerController;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchStories();
+    _pageController.addListener(_pageControllerListener);
+  }
+
+  @override
+  void dispose() {
+    _disposeVideo();
+    _pageController.removeListener(_pageControllerListener);
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _disposeVideo() {
+    _videoPlayerController?.pause();
+    _videoPlayerController?.dispose();
+    _videoPlayerController = null;
+  }
+
+  void _pageControllerListener() {
+    if (_currentIndex != _pageController.page!.round()) {
+      _disposeVideo();
+      setState(() {
+        _currentIndex = _pageController.page!.round();
+      });
+    }
   }
 
   Future<void> _fetchStories() async {
@@ -56,85 +78,58 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
           _hasError = false;
         });
       }
-
-      _startAutoPlay();
     } catch (e) {
       if (mounted) {
         setState(() {
           _hasError = true;
-          _errorMessage = 'Error fetching stories: $e';
+          _errorMessage = 'Erro ao carregar as histórias: $e';
         });
       }
     }
   }
 
-  void _startAutoPlay() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_isPaused) return;
-
-      if (_currentPage < _stories.length - 1) {
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
+  void _showViews(BuildContext context, Map<String, dynamic> story) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (BuildContext context, ScrollController controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: ListView(
+                controller: controller,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.9,
+                    width: MediaQuery.of(context).size.width,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: StoryViewsScreen(
+                        viewedBy: List<String>.from(story['viewed_by'] ?? []),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
-      } else {
-        timer.cancel();
-        if (mounted) {
-          Navigator.pop(context);
-        }
-      }
-      _resetProgress();
-    });
-    _startProgress();
-  }
-
-  void _startProgress() {
-    _progress = 0.0;
-    _progressTimer?.cancel(); // Cancela qualquer progresso anterior
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
-      if (_isPaused) return; // Não avança o progresso se pausado
-      if (mounted) {
-        setState(() {
-          _progress += 0.01;
-        });
-      }
-      if (_progress >= 1.0) {
-        timer.cancel();
-      }
-    });
-  }
-
-  void _resetProgress() {
-    if (mounted) {
-      setState(() {
-        _progress = 0.0;
-      });
-    }
-    _startProgress();
-  }
-
-  void _pauseStory() {
-    setState(() {
-      _isPaused = true;
-    });
-    _timer?.cancel();
-    _progressTimer?.cancel();
-  }
-
-  void _resumeStory() {
-    setState(() {
-      _isPaused = false;
-    });
-    _startAutoPlay();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _progressTimer?.cancel(); // Cancela o timer de progresso
-    _pageController.dispose();
-    super.dispose();
+      },
+    );
   }
 
   @override
@@ -148,68 +143,82 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
           : _stories.isEmpty
               ? const Center(child: CircularProgressIndicator.adaptive())
               : GestureDetector(
-                  onLongPress: _pauseStory,
-                  onLongPressUp: _resumeStory,
                   onTapDown: (details) {
-                    if (!_isPaused) {
-                      if (details.globalPosition.dx <
-                          MediaQuery.of(context).size.width / 2) {
-                        _pageController.previousPage(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                        );
-                      } else {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                      _resetProgress();
+                    if (details.globalPosition.dx <
+                        MediaQuery.of(context).size.width / 2) {
+                      _pageController.previousPage(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOut,
+                      );
+                    } else {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOut,
+                      );
                     }
                   },
                   child: Stack(
                     children: [
                       PageView.builder(
                         controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentPage = index;
-                          });
-                          _resetProgress();
-                        },
                         itemCount: _stories.length,
                         itemBuilder: (context, index) {
                           final story = _stories[index];
-                          final userPhoto = story['user_photo'] ?? '';
-                          final userName = story['username'] ?? 'Unknown';
-                          final storyImage = story['image_url'] ?? '';
-                          final storyContent = story['story_content'] ?? '';
-                          final createdAt = story['created_at'] as Timestamp;
+                          final isVideo = story['media_type'] == 'video';
+                          final mediaUrl = story['media_url'] ?? '';
 
-                          // Formatando a data de criação
-                          final formattedTime = DateFormat('dd/MM/yyyy HH:mm')
-                              .format(createdAt.toDate());
+                          if (!isVideo) {
+                            _disposeVideo();
+                          } else if (_videoPlayerController == null ||
+                              !_videoPlayerController!.value.isInitialized) {
+                            _disposeVideo();
+                            _videoPlayerController =
+                                VideoPlayerController.network(mediaUrl)
+                                  ..initialize().then((_) {
+                                    setState(() {});
+                                    _videoPlayerController!.play();
+                                  }).catchError((e) {
+                                    setState(() {
+                                      _hasError = true;
+                                      _errorMessage =
+                                          'Erro ao carregar vídeo: $e';
+                                    });
+                                  });
+                          }
 
                           return Stack(
                             fit: StackFit.expand,
                             children: [
-                              CachedNetworkImage(
-                                imageUrl: storyImage,
-                                fit: BoxFit.cover,
-                                errorWidget: (context, url, error) =>
-                                    const Center(
-                                  child: Text(
-                                    'Falha ao carregar imagem',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                                placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator.adaptive(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
-                                  ),
-                                ),
-                              ),
+                              story['media_type'] == 'image'
+                                  ? CachedNetworkImage(
+                                      imageUrl: story['media_url'],
+                                      fit: BoxFit.cover,
+                                      errorWidget: (context, url, error) =>
+                                          const Center(
+                                        child: Text(
+                                          'Falha ao carregar imagem',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                        child:
+                                            CircularProgressIndicator.adaptive(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      ),
+                                    )
+                                  : story['media_type'] == 'video' &&
+                                          _videoPlayerController
+                                                  ?.value.isInitialized ==
+                                              true
+                                      ? VideoPlayer(_videoPlayerController!)
+                                      : const Center(
+                                          child: CircularProgressIndicator
+                                              .adaptive(),
+                                        ),
                               Positioned(
                                 top: 60,
                                 left: 10,
@@ -218,24 +227,26 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                   children: [
                                     CircleAvatar(
                                       radius: 20,
-                                      backgroundImage: userPhoto.isNotEmpty
-                                          ? CachedNetworkImageProvider(
-                                              userPhoto)
-                                          : null,
-                                      child: userPhoto.isEmpty
+                                      backgroundImage:
+                                          story['user_photo'].isNotEmpty
+                                              ? CachedNetworkImageProvider(
+                                                  story['user_photo'])
+                                              : null,
+                                      child: story['user_photo'].isEmpty
                                           ? const Icon(Icons.person,
                                               color: Colors.white)
                                           : null,
                                     ),
                                     const SizedBox(width: 10),
                                     Text(
-                                      userName,
+                                      story['username'] ?? 'Unknown',
                                       style: const TextStyle(
                                           color: Colors.white, fontSize: 16),
                                     ),
                                     const Spacer(),
                                     Text(
-                                      formattedTime,
+                                      DateFormat('HH:mm')
+                                          .format(story['created_at'].toDate()),
                                       style: const TextStyle(
                                           color: Colors.white, fontSize: 14),
                                     ),
@@ -243,28 +254,32 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                                 ),
                               ),
                               Positioned(
-                                top: MediaQuery.of(context).padding.top + 10,
-                                left: 10,
-                                right: 10,
-                                child: LinearProgressIndicator(
-                                  value: _progress,
-                                  backgroundColor: Colors.grey.withValues(),
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                ),
-                              ),
-                              Positioned(
                                 bottom: 20,
                                 left: 10,
                                 right: 10,
                                 child: Text(
-                                  storyContent,
+                                  story['story_content'] ?? '',
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 10,
+                                left: 10,
+                                child: GestureDetector(
+                                  onTap: () => _showViews(context, story),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.visibility,
+                                        color: Colors.white,
+                                        size: 40,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],

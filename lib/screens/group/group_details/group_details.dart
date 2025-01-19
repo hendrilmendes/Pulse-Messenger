@@ -239,7 +239,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                   fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                             centerTitle: true,
-                            elevation: 0.5,
                             automaticallyImplyLeading: false,
                           ),
                           Expanded(
@@ -307,7 +306,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         actions: [
           if (isAdmin) // Exibe o botão de edição apenas para o administrador
             IconButton(

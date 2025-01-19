@@ -75,7 +75,6 @@ class FeedScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

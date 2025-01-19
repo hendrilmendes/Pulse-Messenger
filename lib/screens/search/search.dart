@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:social/screens/profile/user_profile/user_profile.dart';
@@ -76,14 +77,13 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Buscar',
+        title: Text(
+          AppLocalizations.of(context)!.search,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
+          preferredSize: const Size.fromHeight(90),
           child: Column(
             children: [
               SearchBarWidget(
@@ -137,9 +137,9 @@ class _SearchScreenState extends State<SearchScreen> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
-              'Nada encontrado.',
+              AppLocalizations.of(context)!.noResult,
               style: TextStyle(fontSize: 18),
             ),
           );
@@ -153,9 +153,9 @@ class _SearchScreenState extends State<SearchScreen> {
         }).toList();
 
         if (postsWithMedia.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
-              'Nenhum post com mídia encontrado.',
+              AppLocalizations.of(context)!.noMedia,
               style: TextStyle(fontSize: 18),
             ),
           );
@@ -253,9 +253,9 @@ class _SearchScreenState extends State<SearchScreen> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
-              'Não foi encontrado esse usuário.',
+              AppLocalizations.of(context)!.noUser,
               style: TextStyle(fontSize: 18),
             ),
           );

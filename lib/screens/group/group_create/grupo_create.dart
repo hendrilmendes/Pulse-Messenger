@@ -54,7 +54,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
     String? imageUrl;
     if (_groupImage != null) {
-      final storageRef = FirebaseStorage.instance.ref().child('group_images/$groupId');
+      final storageRef =
+          FirebaseStorage.instance.ref().child('group_images/$groupId');
       final uploadTask = storageRef.putFile(File(_groupImage!.path));
       final taskSnapshot = await uploadTask;
       imageUrl = await taskSnapshot.ref.getDownloadURL();
@@ -65,10 +66,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       'group_description': groupDescription,
       'group_image': imageUrl,
       'is_group': true,
-      'participants': [
-        ...widget.selectedContacts,
-        currentUserId
-      ],
+      'participants': [...widget.selectedContacts, currentUserId],
       'admin': currentUserId,
       'last_message': '',
       'last_message_time': FieldValue.serverTimestamp(),
@@ -80,7 +78,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   }
 
   Future<Map<String, dynamic>> _getUserData(String userId) async {
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
     return userDoc.data() ?? {};
   }
 
@@ -93,7 +92,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         actions: [
           IconButton(
             onPressed: _createGroup,
@@ -109,7 +107,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             child: CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey[300],
-              backgroundImage: _groupImage != null ? FileImage(File(_groupImage!.path)) : null,
+              backgroundImage: _groupImage != null
+                  ? FileImage(File(_groupImage!.path))
+                  : null,
               child: _groupImage == null
                   ? Icon(Icons.camera_alt, size: 30, color: Colors.grey[800])
                   : null,
@@ -155,7 +155,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   }
 
                   final userData = snapshot.data!;
-                  final username = userData['username'] ?? 'Usuário Desconhecido';
+                  final username =
+                      userData['username'] ?? 'Usuário Desconhecido';
                   final profilePicture = userData['profile_picture'] ?? '';
 
                   return ListTile(

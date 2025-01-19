@@ -81,9 +81,10 @@ class ConversationDetailsScreen extends StatelessWidget {
 
       Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
 
-      List blockedUsers = userData != null && userData.containsKey('blocked_users')
-          ? userData['blocked_users']
-          : [];
+      List blockedUsers =
+          userData != null && userData.containsKey('blocked_users')
+              ? userData['blocked_users']
+              : [];
 
       return blockedUsers.contains(userId);
     }
@@ -142,11 +143,10 @@ class ConversationDetailsScreen extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: FutureBuilder(
-        future:
-            Future.wait([_fetchUserData(), _fetchMedia(), _isUserBlocked(userId)]),
+        future: Future.wait(
+            [_fetchUserData(), _fetchMedia(), _isUserBlocked(userId)]),
         builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator.adaptive());

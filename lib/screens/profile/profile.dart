@@ -83,7 +83,6 @@ class ProfileScreen extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         actions: [
           IconButton(
             onPressed: () => _openSettings(context),

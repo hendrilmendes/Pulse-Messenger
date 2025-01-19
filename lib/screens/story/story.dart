@@ -9,6 +9,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:social/widgets/story/action_bar.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path_provider/path_provider.dart';
 
 class StoriesScreen extends StatefulWidget {
   const StoriesScreen({super.key});
@@ -21,23 +25,72 @@ class StoriesScreen extends StatefulWidget {
 class _StoriesScreenState extends State<StoriesScreen> {
   final TextEditingController _storyController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  File? _image;
+  File? _mediaFile;
+  String? _mediaType;
   Timer? _timer;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
 
   @override
   void dispose() {
     _storyController.dispose();
     _timer?.cancel();
+    _videoController?.dispose();
+    _chewieController?.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickMedia() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        _image = File(pickedFile.path);
+        _mediaFile = File(pickedFile.path);
+        _mediaType = 'image';
       });
     }
+  }
+
+  Future<void> _pickVideo() async {
+    final pickedFile = await _picker.pickVideo(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _mediaFile = File(pickedFile.path);
+        _mediaType = 'video';
+        _initializeVideoPlayer(_mediaFile!);
+      });
+    }
+  }
+
+  Future<void> _initializeVideoPlayer(File videoFile) async {
+    if (_videoController != null) {
+      await _videoController!.dispose();
+    }
+
+    _videoController = VideoPlayerController.file(videoFile)
+      ..initialize().then((_) {
+        setState(() {
+          _chewieController = ChewieController(
+            videoPlayerController: _videoController!,
+            autoPlay: true,
+            looping: true,
+          );
+        });
+      }).catchError((error) {
+        if (kDebugMode) {
+          print("Erro ao inicializar o vídeo: $error");
+        }
+      });
+  }
+
+  Future<String?> _generateVideoThumbnail(String videoUrl) async {
+    final filePath = await VideoThumbnail.thumbnailFile(
+      video: videoUrl,
+      thumbnailPath: (await getTemporaryDirectory()).path,
+      imageFormat: ImageFormat.JPEG,
+      maxWidth: 512,
+      quality: 100,
+    );
+    return filePath;
   }
 
   Future<void> _uploadStory() async {
@@ -50,14 +103,30 @@ class _StoriesScreenState extends State<StoriesScreen> {
       final userData = userDoc.data();
       final profilePictureUrl = userData?['profile_picture'] ?? '';
 
-      String? imageUrl;
-      if (_image != null) {
+      String? mediaUrl;
+      String? thumbnailUrl;
+
+      if (_mediaFile != null) {
         final storageRef = FirebaseStorage.instance
             .ref()
-            .child('story_images')
-            .child('${DateTime.now().toIso8601String()}.jpg');
-        await storageRef.putFile(_image!);
-        imageUrl = await storageRef.getDownloadURL();
+            .child('story_media')
+            .child(
+                '${DateTime.now().toIso8601String()}.${_mediaType == 'video' ? 'mp4' : 'jpg'}');
+        await storageRef.putFile(_mediaFile!);
+        mediaUrl = await storageRef.getDownloadURL();
+
+        if (_mediaType == 'video') {
+          // Gerar miniatura para o vídeo
+          final thumbnailPath = await _generateVideoThumbnail(_mediaFile!.path);
+          if (thumbnailPath != null) {
+            final thumbnailRef = FirebaseStorage.instance
+                .ref()
+                .child('story_thumbnails')
+                .child('${DateTime.now().toIso8601String()}.jpg');
+            await thumbnailRef.putFile(File(thumbnailPath));
+            thumbnailUrl = await thumbnailRef.getDownloadURL();
+          }
+        }
       }
 
       try {
@@ -66,14 +135,18 @@ class _StoriesScreenState extends State<StoriesScreen> {
           'username': user.displayName ?? 'Unknown',
           'user_photo': profilePictureUrl,
           'story_content': _storyController.text,
-          'image_url': imageUrl ?? '',
+          'media_url': mediaUrl ?? '',
+          'thumbnail_url': thumbnailUrl ?? '',
+          'media_type': _mediaType ?? 'image',
           'created_at': Timestamp.now(),
           'expires_at':
               Timestamp.fromDate(DateTime.now().add(const Duration(hours: 24))),
+          'viewed_by': [],
         });
         _storyController.clear();
         setState(() {
-          _image = null;
+          _mediaFile = null;
+          _mediaType = null;
         });
       } catch (e) {
         if (kDebugMode) {
@@ -123,7 +196,6 @@ class _StoriesScreenState extends State<StoriesScreen> {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -162,10 +234,13 @@ class _StoriesScreenState extends State<StoriesScreen> {
                     itemBuilder: (context, index) {
                       final story =
                           stories[index].data() as Map<String, dynamic>?;
+
                       final storyId = stories[index].id;
                       final userPhoto = story?['user_photo'] ?? '';
                       final storyContent = story?['story_content'] ?? '';
-                      final imageUrl = story?['image_url'] ?? '';
+                      final mediaUrl = story?['media_url'] ?? '';
+                      final mediaType = story?['media_type'] ?? 'image';
+                      final thumbnailUrl = story?['thumbnail_url'] ?? '';
 
                       return Card(
                         elevation: 4.0,
@@ -176,19 +251,18 @@ class _StoriesScreenState extends State<StoriesScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12.0),
-                              child: imageUrl.isNotEmpty
+                              child: mediaType == 'video'
                                   ? CachedNetworkImage(
-                                      imageUrl: imageUrl,
+                                      imageUrl: thumbnailUrl,
                                       fit: BoxFit.cover,
                                       height: double.infinity,
                                       width: double.infinity,
                                     )
-                                  : Container(
-                                      color: Colors.grey[200],
-                                      child: Center(
-                                        child: Icon(Icons.image,
-                                            size: 40, color: Colors.grey[600]),
-                                      ),
+                                  : CachedNetworkImage(
+                                      imageUrl: mediaUrl,
+                                      fit: BoxFit.cover,
+                                      height: double.infinity,
+                                      width: double.infinity,
                                     ),
                             ),
                             Positioned(
@@ -197,7 +271,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                               child: CircleAvatar(
                                 radius: 20,
                                 backgroundImage: userPhoto.isNotEmpty
-                                    ? CachedNetworkImageProvider(userPhoto)
+                                    ? NetworkImage(userPhoto)
                                     : null,
                                 child: userPhoto.isEmpty
                                     ? const Icon(Icons.person)
@@ -212,7 +286,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0, vertical: 4.0),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withValues(),
+                                    color: Colors.black.withOpacity(0.6),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   child: Text(
@@ -223,48 +297,17 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                   ),
                                 ),
                               ),
+                            // Botão de Excluir
                             Positioned(
                               top: 8,
                               right: 8,
                               child: IconButton(
-                                icon:
-                                    const Icon(Icons.delete, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () async {
-                                  final appLocalizations =
-                                      AppLocalizations.of(context);
-                                  if (appLocalizations != null) {
-                                    final shouldDelete = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) {
-                                        return AlertDialog(
-                                          title: Text(
-                                              appLocalizations.deleteConfirm),
-                                          content: Text(
-                                              appLocalizations.deleteMomment),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(false),
-                                              child:
-                                                  Text(appLocalizations.cancel),
-                                            ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(true),
-                                              child:
-                                                  Text(appLocalizations.delete),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-
-                                    if (shouldDelete == true) {
-                                      await _deleteStory(storyId);
-                                    }
-                                  }
+                                  await _deleteStory(storyId);
                                 },
                               ),
                             ),
@@ -278,24 +321,40 @@ class _StoriesScreenState extends State<StoriesScreen> {
             ),
             // Add Story Section
             const SizedBox(height: 10),
-            if (_image != null)
+            if (_mediaFile != null)
               Center(
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.file(
-                      _image!,
-                      height: 200,
-                      width: MediaQuery.of(context).size.width - 40,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  child: _mediaType == 'image'
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: Image.file(
+                            _mediaFile!,
+                            height: 200,
+                            width: MediaQuery.of(context).size.width - 40,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : _videoController != null &&
+                              _videoController!.value.isInitialized
+                          ? AspectRatio(
+                              aspectRatio: _videoController!.value.aspectRatio,
+                              child: VideoPlayer(_videoController!),
+                            )
+                          : Container(
+                              height: 200,
+                              width: MediaQuery.of(context).size.width - 40,
+                              color: Colors.black,
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
                 ),
               ),
             StoryActionBar(
               storyController: _storyController,
-              onPickImage: _pickImage,
+              onPickImage: _pickMedia,
+              onPickVideo: _pickVideo,
               onUploadStory: _uploadStory,
             ),
           ],

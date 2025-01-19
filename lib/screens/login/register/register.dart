@@ -21,7 +21,6 @@ class RegisterScreen extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Stack(
         children: [
@@ -52,8 +51,7 @@ class RegisterScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon:
-                          const Icon(Icons.email),
+                      prefixIcon: const Icon(Icons.email),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),

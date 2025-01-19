@@ -11,15 +11,14 @@ class ThemeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:  Text(
+        title: Text(
           AppLocalizations.of(context)!.interface,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         children: [
           _buildSectionTitle(AppLocalizations.of(context)!.theme),
           _buildListTile(

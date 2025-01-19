@@ -28,7 +28,6 @@ class FollowManagementScreen extends StatelessWidget {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
-          elevation: 0.5,
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Seguindo'),

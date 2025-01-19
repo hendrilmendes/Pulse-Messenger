@@ -112,7 +112,6 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

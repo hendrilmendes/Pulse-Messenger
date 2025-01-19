@@ -10,12 +10,9 @@ class LanguageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<LocaleProvider>(
       builder: (context, localeProvider, child) {
-        Locale? currentLocale = localeProvider.locale;
-        
-        // Se o idioma não foi manualmente selecionado, use o idioma do dispositivo
-        String currentLanguage = currentLocale != null 
-            ? _getLanguageName(currentLocale.languageCode) 
-            : _getLanguageName(Localizations.localeOf(context).languageCode);
+        Locale? currentLocale =
+            localeProvider.locale ?? Localizations.localeOf(context);
+        String currentLanguage = _getLanguageName(currentLocale.languageCode);
 
         return Scaffold(
           appBar: AppBar(
@@ -24,14 +21,16 @@ class LanguageScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             centerTitle: true,
-            elevation: 0.5,
           ),
           body: ListView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
             children: [
-              _buildLanguageOption(context, 'Português', Icons.language, 'pt'),
-              _buildLanguageOption(context, 'Español', Icons.language, 'es'),
-              _buildLanguageOption(context, 'English', Icons.language, 'en'),
+              _buildLanguageOption(
+                  context, 'Português', Icons.language, 'pt', currentLanguage),
+              _buildLanguageOption(
+                  context, 'Español', Icons.language, 'es', currentLanguage),
+              _buildLanguageOption(
+                  context, 'English', Icons.language, 'en', currentLanguage),
             ],
           ),
         );
@@ -39,25 +38,44 @@ class LanguageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLanguageOption(
-      BuildContext context, String title, IconData icon, String localeCode) {
+  Widget _buildLanguageOption(BuildContext context, String title, IconData icon,
+      String localeCode, String currentLanguage) {
+    bool isSelected = currentLanguage == title;
+
     return ListTile(
-      leading: Icon(icon, size: 28),
-      title: Text(title),
-      iconColor: Colors.blue,
+      leading: Icon(
+        icon,
+        size: 28,
+        color: isSelected ? Colors.blue : Colors.grey,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.blue : Colors.grey,
+        ),
+      ),
       onTap: () {
-        _updateLanguage(context, localeCode);
+        if (!isSelected) {
+          _updateLanguage(context, localeCode);
+        }
       },
+      trailing: isSelected
+          ? const Icon(
+              Icons.check,
+              color: Colors.blue,
+            )
+          : null,
     );
   }
 
   void _updateLanguage(BuildContext context, String localeCode) {
     Provider.of<LocaleProvider>(context, listen: false)
         .setLocale(Locale(localeCode));
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Idioma alterado para ${_getLanguageName(localeCode)}'),
+        content: Text(
+            '${AppLocalizations.of(context)!.noResult} ${_getLanguageName(localeCode)}'),
       ),
     );
   }
@@ -69,7 +87,7 @@ class LanguageScreen extends StatelessWidget {
       case 'es':
         return 'Español';
       case 'en':
-        return 'English';  
+        return 'English';
       default:
         return 'Português';
     }

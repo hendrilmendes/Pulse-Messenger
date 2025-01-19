@@ -157,11 +157,11 @@ class PostDetailsScreen extends StatelessWidget {
     try {
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         final userSnapshot = await transaction.get(userRef);
-        if (!userSnapshot.exists) {
-          transaction.set(userRef, {'saved_posts': []});
+        List<String> savedPosts = [];
+        if (userSnapshot.exists) {
+          savedPosts =
+              List<String>.from(userSnapshot.data()?['saved_posts'] ?? []);
         }
-
-        final savedPosts = userSnapshot.data()?['saved_posts'] as List? ?? [];
         if (savedPosts.contains(postId)) {
           savedPosts.remove(postId);
         } else {
@@ -318,6 +318,7 @@ class PostDetailsScreen extends StatelessWidget {
                                           isSaved
                                               ? Icons.bookmark
                                               : Icons.bookmark_border,
+                                          color: isSaved ? Colors.blue : null,
                                         ),
                                         onPressed: () {
                                           _savePost(postId, userId);

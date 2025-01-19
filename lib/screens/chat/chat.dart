@@ -174,16 +174,18 @@ class _ChatsScreenState extends State<ChatsScreen> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
-          child: SearchBarWidget(
-            searchQuery: _searchController.text,
-            onSearchChanged: (query) {
-              setState(() {
-                searchTerm = query.toLowerCase();
-              });
-            },
+          preferredSize: const Size.fromHeight(90),
+          child: Column(
+            children: [
+              SearchBarWidget(
+                searchQuery: _searchController.text,
+                onSearchChanged: (query) {
+                  _searchController.text = query;
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),

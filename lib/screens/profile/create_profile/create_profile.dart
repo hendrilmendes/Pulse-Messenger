@@ -31,7 +31,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       final file = File(pickedFile.path);
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_images')
+          .child('profile_picture')
           .child('${widget.user.uid}.jpg');
 
       try {
@@ -101,7 +101,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

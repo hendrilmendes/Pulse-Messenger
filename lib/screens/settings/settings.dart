@@ -51,7 +51,6 @@ class SettingsScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0.5,
         actions: [
           IconButton(
             onPressed: () {
@@ -63,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         children: [
           // Conta Section
           _buildSectionTitle(AppLocalizations.of(context)!.account),
@@ -95,7 +94,8 @@ class SettingsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                    builder: (context) => SavedPostsScreen(userId: userId ?? 'default_user_id')),
+                    builder: (context) =>
+                        SavedPostsScreen(userId: userId ?? 'default_user_id')),
               );
             },
           ),
