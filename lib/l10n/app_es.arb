@@ -152,6 +152,6 @@
     "@confirmDelete": {},
     "confirmDeleteSub": "¿Realmente deseas eliminar este comentario?",
     "@confirmDeleteSub": {},
-    "savedPosts": "Publicaciones Guardadas,
+    "savedPosts": "Publicaciones Guardadas",
     "@savedPosts": {}
 }

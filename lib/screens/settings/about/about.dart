@@ -85,7 +85,8 @@ class _AboutPageState extends State<AboutPage> {
                 ),
               ],
             ),
-        
+          ),
+
           const Divider(),
 
           // Privacy Policy
@@ -131,7 +132,6 @@ class _AboutPageState extends State<AboutPage> {
                 ),
               );
             },
-          ),
           ),
         ],
       ),
