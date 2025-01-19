@@ -85,10 +85,6 @@ class _AboutPageState extends State<AboutPage> {
               ],
             ),
           ),
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
           const Divider(),
 
           // Privacy Policy
