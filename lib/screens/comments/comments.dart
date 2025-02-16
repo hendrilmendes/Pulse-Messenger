@@ -9,8 +9,11 @@ import 'package:social/widgets/comments/shimmer_comments.dart';
 class CommentsScreen extends StatefulWidget {
   final String postId;
   final String postOwnerId; // Id do dono da postagem
-  const CommentsScreen(
-      {super.key, required this.postId, required this.postOwnerId});
+  const CommentsScreen({
+    super.key,
+    required this.postId,
+    required this.postOwnerId,
+  });
 
   @override
   // ignore: library_private_types_in_public_api
@@ -25,10 +28,11 @@ class _CommentsScreenState extends State<CommentsScreen> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         // Obtém as informações do usuário da coleção 'users'
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser.uid)
-            .get();
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUser.uid)
+                .get();
 
         if (userDoc.exists) {
           final userData = userDoc.data();
@@ -42,13 +46,13 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 .doc(widget.postId)
                 .collection('comments')
                 .add({
-              'user_id': currentUser.uid,
-              'username': username,
-              'user_photo': userPhoto,
-              'comment': _commentController.text,
-              'created_at': Timestamp.now(),
-              'likes': [],
-            });
+                  'user_id': currentUser.uid,
+                  'username': username,
+                  'user_photo': userPhoto,
+                  'comment': _commentController.text,
+                  'created_at': Timestamp.now(),
+                  'likes': [],
+                });
 
             // Envia a notificação para o dono da postagem
             await FirebaseFirestore.instance.collection('notifications').add({
@@ -116,12 +120,13 @@ class _CommentsScreenState extends State<CommentsScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('posts')
-                  .doc(widget.postId)
-                  .collection('comments')
-                  .orderBy('created_at', descending: true)
-                  .snapshots(),
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('posts')
+                      .doc(widget.postId)
+                      .collection('comments')
+                      .orderBy('created_at', descending: true)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const ShimmerCommentsLoading();
@@ -143,16 +148,20 @@ class _CommentsScreenState extends State<CommentsScreen> {
                     final username = commentData['username'] ?? 'Unknown';
                     final comment = commentData['comment'] ?? '';
                     final timestamp = commentData['created_at'] as Timestamp?;
-                    final likes = (commentData['likes'] as List?)
+                    final likes =
+                        (commentData['likes'] as List?)
                             ?.map((e) => e.toString())
                             .toList() ??
                         [];
-                    final isLiked =
-                        likes.contains(FirebaseAuth.instance.currentUser?.uid);
+                    final isLiked = likes.contains(
+                      FirebaseAuth.instance.currentUser?.uid,
+                    );
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 8.0, horizontal: 12.0),
+                        vertical: 8.0,
+                        horizontal: 12.0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -162,12 +171,14 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                   commentData['user_photo'] != null &&
                                           commentData['user_photo'] != ''
                                       ? CachedNetworkImageProvider(
-                                          commentData['user_photo'])
+                                        commentData['user_photo'],
+                                      )
                                       : null,
-                              child: commentData['user_photo'] == null ||
-                                      commentData['user_photo'] == ''
-                                  ? const Icon(Icons.person)
-                                  : null,
+                              child:
+                                  commentData['user_photo'] == null ||
+                                          commentData['user_photo'] == ''
+                                      ? const Icon(Icons.person)
+                                      : null,
                             ),
                             title: Text(
                               username,
@@ -185,7 +196,9 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                   ? _formatTimestamp(timestamp)
                                   : 'Desconhecido',
                               style: const TextStyle(
-                                  fontSize: 12, color: Colors.grey),
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                           Row(
@@ -197,8 +210,11 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                       : Icons.favorite_border,
                                   color: isLiked ? Colors.red : null,
                                 ),
-                                onPressed: () => _likeComment(commentId,
-                                    FirebaseAuth.instance.currentUser!.uid),
+                                onPressed:
+                                    () => _likeComment(
+                                      commentId,
+                                      FirebaseAuth.instance.currentUser!.uid,
+                                    ),
                               ),
                               Text('${likes.length} curtidas'),
                               const SizedBox(width: 12),
@@ -209,24 +225,27 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                     context: context,
                                     builder: (context) {
                                       final TextEditingController
-                                          replyController =
-                                          TextEditingController();
+                                      replyController = TextEditingController();
                                       return AlertDialog(
-                                        title:
-                                            const Text('Responder comentário'),
+                                        title: const Text(
+                                          'Responder comentário',
+                                        ),
                                         content: TextField(
                                           controller: replyController,
                                           decoration: const InputDecoration(
-                                              hintText:
-                                                  'Escreva sua resposta...'),
+                                            hintText: 'Escreva sua resposta...',
+                                          ),
                                         ),
                                         actions: [
                                           TextButton(
                                             onPressed: () {
                                               if (replyController
-                                                  .text.isNotEmpty) {
-                                                _replyToComment(commentId,
-                                                    replyController.text);
+                                                  .text
+                                                  .isNotEmpty) {
+                                                _replyToComment(
+                                                  commentId,
+                                                  replyController.text,
+                                                );
                                                 Navigator.of(context).pop();
                                               }
                                             },
@@ -261,10 +280,11 @@ class _CommentsScreenState extends State<CommentsScreen> {
   Future<void> _replyToComment(String commentId, String replyText) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.uid)
+              .get();
 
       if (userDoc.exists) {
         final userData = userDoc.data();
@@ -279,12 +299,12 @@ class _CommentsScreenState extends State<CommentsScreen> {
               .doc(commentId)
               .collection('replies')
               .add({
-            'user_id': currentUser.uid,
-            'username': username,
-            'user_photo': userPhoto,
-            'reply': replyText,
-            'created_at': Timestamp.now(),
-          });
+                'user_id': currentUser.uid,
+                'username': username,
+                'user_photo': userPhoto,
+                'reply': replyText,
+                'created_at': Timestamp.now(),
+              });
         }
       }
     }

@@ -13,7 +13,10 @@ class ShimmerShareLoading extends StatelessWidget {
         itemCount: 8, // Quantidade de itens shimmer
         itemBuilder: (context, index) {
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: 8.0,
+              horizontal: 16.0,
+            ),
             child: Row(
               children: [
                 Container(

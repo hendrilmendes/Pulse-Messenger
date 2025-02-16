@@ -53,15 +53,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             _localUserJoined = true;
           });
         },
-        onUserJoined:
-            (RtcConnection connection, int remoteUid, int elapsed) async {
+        onUserJoined: (
+          RtcConnection connection,
+          int remoteUid,
+          int elapsed,
+        ) async {
           setState(() {
             _remoteUid = remoteUid;
           });
           await _fetchRemoteUserData(remoteUid);
         },
-        onUserOffline: (RtcConnection connection, int remoteUid,
-            UserOfflineReasonType reason) {
+        onUserOffline: (
+          RtcConnection connection,
+          int remoteUid,
+          UserOfflineReasonType reason,
+        ) {
           setState(() {
             _remoteUid = null;
             _remoteUserName = '';
@@ -87,10 +93,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Future<void> _fetchRemoteUserData(int remoteUid) async {
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.userId)
+              .get();
       if (userDoc.exists) {
         final userData = userDoc.data()!;
         setState(() {
@@ -140,21 +147,17 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           if (widget.isVideoCall)
             _remoteUid != null
                 ? Positioned.fill(
-                    child: AgoraVideoView(
-                      controller: VideoViewController.remote(
-                        rtcEngine: _engine,
-                        canvas: VideoCanvas(uid: _remoteUid),
-                        connection:
-                            RtcConnection(channelId: widget.channelName),
-                      ),
-                    ),
-                  )
-                : const Center(
-                    child: Text(
-                      'Chamando...',
-                      textAlign: TextAlign.center,
+                  child: AgoraVideoView(
+                    controller: VideoViewController.remote(
+                      rtcEngine: _engine,
+                      canvas: VideoCanvas(uid: _remoteUid),
+                      connection: RtcConnection(channelId: widget.channelName),
                     ),
                   ),
+                )
+                : const Center(
+                  child: Text('Chamando...', textAlign: TextAlign.center),
+                ),
           // Vídeo local
           if (widget.isVideoCall)
             Positioned(
@@ -163,14 +166,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               child: SizedBox(
                 width: 100,
                 height: 150,
-                child: _localUserJoined
-                    ? AgoraVideoView(
-                        controller: VideoViewController(
-                          rtcEngine: _engine,
-                          canvas: const VideoCanvas(uid: 0),
-                        ),
-                      )
-                    : const CircularProgressIndicator.adaptive(),
+                child:
+                    _localUserJoined
+                        ? AgoraVideoView(
+                          controller: VideoViewController(
+                            rtcEngine: _engine,
+                            canvas: const VideoCanvas(uid: 0),
+                          ),
+                        )
+                        : const CircularProgressIndicator.adaptive(),
               ),
             ),
           // Exibir nome e foto do usuário remoto
@@ -188,10 +192,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage: _remoteUserPhotoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(_remoteUserPhotoUrl)
-                          : const AssetImage('assets/default_avatar.png')
-                              as ImageProvider,
+                      backgroundImage:
+                          _remoteUserPhotoUrl.isNotEmpty
+                              ? CachedNetworkImageProvider(_remoteUserPhotoUrl)
+                              : const AssetImage('assets/default_avatar.png')
+                                  as ImageProvider,
                     ),
                     const SizedBox(width: 10),
                     Text(

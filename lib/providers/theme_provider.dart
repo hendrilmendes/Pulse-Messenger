@@ -40,8 +40,6 @@ class ThemeModel extends ChangeNotifier {
     notifyListeners();
   }
 
-
-
   void saveDynamicPreference(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setBool('dynamicColorsEnabled', value);

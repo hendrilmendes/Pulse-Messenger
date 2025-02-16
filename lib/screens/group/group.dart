@@ -85,13 +85,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
     });
 
-    _messagesStream = FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .limit(20)
-        .snapshots();
+    _messagesStream =
+        FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatId)
+            .collection('messages')
+            .orderBy('timestamp', descending: true)
+            .limit(20)
+            .snapshots();
   }
 
   @override
@@ -117,12 +118,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .doc(widget.chatId)
         .collection('messages')
         .add({
-      'sender_id': currentUser.uid,
-      'sender_name': currentUser.displayName ?? 'Desconhecido',
-      'text': message,
-      'timestamp': Timestamp.now(),
-      'read': false,
-    });
+          'sender_id': currentUser.uid,
+          'sender_name': currentUser.displayName ?? 'Desconhecido',
+          'text': message,
+          'timestamp': Timestamp.now(),
+          'read': false,
+        });
 
     await _firestore.collection('chats').doc(widget.chatId).update({
       'last_message': message,
@@ -132,9 +133,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Future<void> _sendAudio(File audioFile) async {
     try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('audios/${DateTime.now().millisecondsSinceEpoch}.m4a');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'audios/${DateTime.now().millisecondsSinceEpoch}.m4a',
+      );
       final uploadTask = storageRef.putFile(audioFile);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
@@ -144,26 +145,26 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        'audio': downloadUrl,
-        'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
-        'sender_id': _auth.currentUser!.uid,
-        'timestamp': Timestamp.now(),
-        'read': false,
-      });
+            'audio': downloadUrl,
+            'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
+            'sender_id': _auth.currentUser!.uid,
+            'timestamp': Timestamp.now(),
+            'read': false,
+          });
 
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': 'Mensagem de Áudio',
-        'last_message_time': Timestamp.now(),
-        'unread_count': FieldValue.increment(1),
-      });
+            'last_message': 'Mensagem de Áudio',
+            'last_message_time': Timestamp.now(),
+            'unread_count': FieldValue.increment(1),
+          });
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending audio: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error sending audio: $e')));
     }
   }
 
@@ -185,8 +186,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  Future<void> _sendMedia(
-      {required bool fromGallery, bool isVideo = false}) async {
+  Future<void> _sendMedia({
+    required bool fromGallery,
+    bool isVideo = false,
+  }) async {
     final currentUserId = _auth.currentUser!.uid;
 
     try {
@@ -201,7 +204,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
         if (result != null && result.files.isNotEmpty) {
           file = File(result.files.first.path!);
-          isVideoFile = result.files.first.extension == 'mp4' ||
+          isVideoFile =
+              result.files.first.extension == 'mp4' ||
               result.files.first.extension == 'mov';
         } else {
           throw 'Nenhuma mídia selecionada';
@@ -214,7 +218,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           pickedFile = await picker.pickVideo(source: ImageSource.camera);
         } else {
           pickedFile = await picker.pickImage(
-              source: ImageSource.camera, imageQuality: 100);
+            source: ImageSource.camera,
+            imageQuality: 100,
+          );
         }
 
         if (pickedFile != null) {
@@ -228,7 +234,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       // Carregar o arquivo no Firebase Storage
       final fileExtension = file.path.split('.').last;
       final storageRef = FirebaseStorage.instance.ref().child(
-          '${isVideoFile ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.$fileExtension');
+        '${isVideoFile ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.$fileExtension',
+      );
       final uploadTask = storageRef.putFile(file);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
@@ -239,27 +246,28 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        isVideoFile ? 'video' : 'image': downloadUrl,
-        'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
-        'sender_id': currentUserId,
-        'timestamp': Timestamp.now(),
-        'read': false,
-      });
+            isVideoFile ? 'video' : 'image': downloadUrl,
+            'sender_name': _auth.currentUser?.displayName ?? 'Desconhecido',
+            'sender_id': currentUserId,
+            'timestamp': Timestamp.now(),
+            'read': false,
+          });
 
       // Atualiza o documento do chat com a última mensagem e hora
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': isVideoFile ? 'Vídeo' : 'Imagem',
-        'last_message_time': Timestamp.now(),
-      });
+            'last_message': isVideoFile ? 'Vídeo' : 'Imagem',
+            'last_message_time': Timestamp.now(),
+          });
 
       // Obtém o documento do chat para atualizar o unread_count dos outros participantes
-      final chatDoc = await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(widget.chatId)
-          .get();
+      final chatDoc =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .get();
       final chatData = chatDoc.data() as Map<String, dynamic>;
       final participants = List<String>.from(chatData['participants'] ?? []);
 
@@ -269,16 +277,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           await FirebaseFirestore.instance
               .collection('chats')
               .doc(widget.chatId)
-              .update({
-            'unread_count.$participantId': FieldValue.increment(1),
-          });
+              .update({'unread_count.$participantId': FieldValue.increment(1)});
         }
       }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -286,8 +292,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        _recordingDuration =
-            Duration(seconds: _recordingDuration.inSeconds + 1);
+        _recordingDuration = Duration(
+          seconds: _recordingDuration.inSeconds + 1,
+        );
       });
     });
   }
@@ -314,10 +321,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       // Configuração de alta qualidade
-      const recordConfig = RecordConfig(
-        bitRate: 128000,
-        sampleRate: 44100,
-      );
+      const recordConfig = RecordConfig(bitRate: 128000, sampleRate: 44100);
 
       await _record.start(recordConfig, path: path);
       _startTimer(); // Inicia o temporizador
@@ -364,11 +368,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (context) => GroupDetailsScreen(
-          chatId: widget.chatId,
-          isGroup: widget.isGroup,
-          userId: widget.userId,
-        ),
+        builder:
+            (context) => GroupDetailsScreen(
+              chatId: widget.chatId,
+              isGroup: widget.isGroup,
+              userId: widget.userId,
+            ),
       ),
     );
   }
@@ -388,10 +393,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return SizedBox(
       width: 150,
       height: 150,
-      child: Image.memory(
-        uint8list,
-        fit: BoxFit.cover,
-      ),
+      child: Image.memory(uint8list, fit: BoxFit.cover),
     );
   }
 
@@ -428,16 +430,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .doc(messageId)
         .get()
         .then((doc) {
-      if (doc.exists) {
-        final messageData = doc.data() as Map<String, dynamic>;
-        final senderId = messageData['sender_id'];
+          if (doc.exists) {
+            final messageData = doc.data() as Map<String, dynamic>;
+            final senderId = messageData['sender_id'];
 
-        // Marca a mensagem como lida somente se não for do próprio usuário
-        if (senderId != userId && !(messageData['read'] ?? false)) {
-          doc.reference.update({'read': true});
-        }
-      }
-    });
+            // Marca a mensagem como lida somente se não for do próprio usuário
+            if (senderId != userId && !(messageData['read'] ?? false)) {
+              doc.reference.update({'read': true});
+            }
+          }
+        });
   }
 
   Future<Map<String, dynamic>?> _getUserData(String userId) async {
@@ -450,10 +452,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (context) => UserProfileScreen(
-          userId: userId,
-          username: userName,
-        ),
+        builder:
+            (context) => UserProfileScreen(userId: userId, username: userName),
       ),
     );
   }
@@ -463,346 +463,390 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<Map<String, dynamic>>(
-            future: _groupData,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Text('Carregando...');
-              }
+          future: _groupData,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Text('Carregando...');
+            }
 
-              if (!snapshot.hasData || snapshot.data == null) {
-                return const Text('Grupo');
-              }
+            if (!snapshot.hasData || snapshot.data == null) {
+              return const Text('Grupo');
+            }
 
-              final groupData = snapshot.data!;
-              final groupName = groupData['group_name'] ?? 'Grupo';
-              final groupPhotoUrl = groupData['group_image'] ?? '';
-              final participants =
-                  groupData['participants'] as List<dynamic>? ?? [];
-              final memberCount = participants.length;
+            final groupData = snapshot.data!;
+            final groupName = groupData['group_name'] ?? 'Grupo';
+            final groupPhotoUrl = groupData['group_image'] ?? '';
+            final participants =
+                groupData['participants'] as List<dynamic>? ?? [];
+            final memberCount = participants.length;
 
-              return GestureDetector(
-                onTap: _navigateToGroupDetails,
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: groupPhotoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(groupPhotoUrl)
-                          : const AssetImage('assets/default_avatar.png')
-                              as ImageProvider,
-                      radius: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            groupName,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 18),
+            return GestureDetector(
+              onTap: _navigateToGroupDetails,
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage:
+                        groupPhotoUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(groupPhotoUrl)
+                            : const AssetImage('assets/default_avatar.png')
+                                as ImageProvider,
+                    radius: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          groupName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(
+                          height: 4,
+                        ), // Espaço entre o nome e a contagem
+                        Text(
+                          '$memberCount membros', // Exibindo a quantidade de membros
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
                           ),
-                          const SizedBox(
-                              height: 4), // Espaço entre o nome e a contagem
-                          Text(
-                            '$memberCount membros', // Exibindo a quantidade de membros
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            }),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
       body: Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-                stream: _messagesStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                        child: CircularProgressIndicator.adaptive());
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                        child: Text('Sem mensagens',
-                            style: TextStyle(fontSize: 16)));
-                  }
+              stream: _messagesStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator.adaptive(),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Sem mensagens',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
 
-                  return ListView.builder(
-                    reverse: true,
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      final messageDoc = snapshot.data!.docs[index];
-                      final messageData =
-                          messageDoc.data() as Map<String, dynamic>;
-                      final isMe =
-                          messageData['sender_id'] == _auth.currentUser!.uid;
-                      final isRead = messageData['read'] ?? false;
+                return ListView.builder(
+                  reverse: true,
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final messageDoc = snapshot.data!.docs[index];
+                    final messageData =
+                        messageDoc.data() as Map<String, dynamic>;
+                    final isMe =
+                        messageData['sender_id'] == _auth.currentUser!.uid;
+                    final isRead = messageData['read'] ?? false;
 
-                      return FutureBuilder<Map<String, dynamic>?>(
-                        future: _getUserData(
-                            messageData['sender_id']), // Chame a função aqui
-                        builder: (context, userSnapshot) {
-                          if (userSnapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
+                    return FutureBuilder<Map<String, dynamic>?>(
+                      future: _getUserData(
+                        messageData['sender_id'],
+                      ), // Chame a função aqui
+                      builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                          final senderUserData = userSnapshot.data;
-                          final senderId = messageData['sender_id'];
-                          final senderName =
-                              senderUserData?['username'] ?? 'Usuário';
-                          final senderProfilePic =
-                              senderUserData?['profile_picture'] ?? '';
+                        final senderUserData = userSnapshot.data;
+                        final senderId = messageData['sender_id'];
+                        final senderName =
+                            senderUserData?['username'] ?? 'Usuário';
+                        final senderProfilePic =
+                            senderUserData?['profile_picture'] ?? '';
 
-                          // Marcar como lida apenas se o usuário atual for o destinatário
-                          if (!isMe && !isRead) {
-                            _checkAndMarkMessagesAsRead(messageDoc.id);
-                          }
+                        // Marcar como lida apenas se o usuário atual for o destinatário
+                        if (!isMe && !isRead) {
+                          _checkAndMarkMessagesAsRead(messageDoc.id);
+                        }
 
-                          // Obtenha a data da mensagem
-                          DateTime messageDate =
-                              (messageData['timestamp'] as Timestamp).toDate();
-                          String formattedDate = _formatDate(messageDate);
+                        // Obtenha a data da mensagem
+                        DateTime messageDate =
+                            (messageData['timestamp'] as Timestamp).toDate();
+                        String formattedDate = _formatDate(messageDate);
 
-                          // Obtenha a data da mensagem anterior, se existir
-                          DateTime? previousMessageDate;
-                          if (index < snapshot.data!.docs.length - 1) {
-                            final previousMessageDoc =
-                                snapshot.data!.docs[index + 1];
-                            final previousMessageData = previousMessageDoc
-                                .data() as Map<String, dynamic>;
-                            previousMessageDate =
-                                (previousMessageData['timestamp'] as Timestamp)
-                                    .toDate();
-                          }
+                        // Obtenha a data da mensagem anterior, se existir
+                        DateTime? previousMessageDate;
+                        if (index < snapshot.data!.docs.length - 1) {
+                          final previousMessageDoc =
+                              snapshot.data!.docs[index + 1];
+                          final previousMessageData =
+                              previousMessageDoc.data() as Map<String, dynamic>;
+                          previousMessageDate =
+                              (previousMessageData['timestamp'] as Timestamp)
+                                  .toDate();
+                        }
 
-                          // Verifique se a data da mensagem atual é diferente da anterior
-                          bool showDateHeader = previousMessageDate == null ||
-                              !isSameDay(messageDate, previousMessageDate);
+                        // Verifique se a data da mensagem atual é diferente da anterior
+                        bool showDateHeader =
+                            previousMessageDate == null ||
+                            !isSameDay(messageDate, previousMessageDate);
 
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (showDateHeader)
-                                  Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8, horizontal: 16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        formattedDate,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 16,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (showDateHeader)
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 16,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      formattedDate,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
-                                const SizedBox(
-                                  height: 16,
                                 ),
-                                Row(
-                                  mainAxisAlignment: isMe
-                                      ? MainAxisAlignment.end
-                                      : MainAxisAlignment.start,
-                                  children: [
-                                    if (!isMe)
-                                      GestureDetector(
-                                        onTap: () {
-                                          _openUserProfile(
-                                              context, senderId, senderName);
-                                        },
-                                        child: CircleAvatar(
-                                          backgroundImage:
-                                              CachedNetworkImageProvider(
-                                                  senderProfilePic),
-                                          radius: 20,
-                                        ),
-                                      ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Column(
-                                        crossAxisAlignment: isMe
-                                            ? CrossAxisAlignment.end
-                                            : CrossAxisAlignment.start,
-                                        children: [
-                                          if (!isMe)
-                                            Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[300],
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                senderName,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    isMe
+                                        ? MainAxisAlignment.end
+                                        : MainAxisAlignment.start,
+                                children: [
+                                  if (!isMe)
+                                    GestureDetector(
+                                      onTap: () {
+                                        _openUserProfile(
+                                          context,
+                                          senderId,
+                                          senderName,
+                                        );
+                                      },
+                                      child: CircleAvatar(
+                                        backgroundImage:
+                                            CachedNetworkImageProvider(
+                                              senderProfilePic,
                                             ),
-                                          const SizedBox(height: 4),
-                                          if (messageData['text'] != null)
-                                            Container(
-                                              padding: const EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: isMe
-                                                    ? Colors.blue
-                                                    : Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: isMe
-                                                      ? Colors.blue
-                                                      : Colors.grey[300]!,
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                messageData['text'],
-                                                style: TextStyle(
-                                                  color: isMe
-                                                      ? Colors.white
-                                                      : Colors.black,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ),
-                                          if (messageData['image'] != null)
-                                            GestureDetector(
-                                              onTap: () => _showMedia(context,
-                                                  messageData['image'], false),
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                child: CachedNetworkImage(
-                                                  imageUrl:
-                                                      messageData['image'],
-                                                  placeholder: (context, url) =>
-                                                      const CircularProgressIndicator
-                                                          .adaptive(),
-                                                  errorWidget: (context, url,
-                                                          error) =>
-                                                      const Icon(Icons.error),
-                                                  width: 150,
-                                                  height: 150,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                            ),
-                                          if (messageData['video'] != null)
-                                            GestureDetector(
-                                              onTap: () => _showMedia(context,
-                                                  messageData['video'], true),
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                child: FutureBuilder<Widget>(
-                                                  future: _buildVideoThumbnail(
-                                                      messageData['video']),
-                                                  builder: (context, snapshot) {
-                                                    if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState
-                                                            .waiting) {
-                                                      return const CircularProgressIndicator
-                                                          .adaptive();
-                                                    } else if (snapshot
-                                                        .hasData) {
-                                                      return snapshot.data!;
-                                                    } else {
-                                                      return const Icon(
-                                                          Icons.video_library);
-                                                    }
-                                                  },
-                                                ),
-                                              ),
-                                            ),
-                                          if (messageData['audio'] != null)
-                                            AudioCard(
-                                              audioUrl: messageData['audio'],
-                                              onPlayPausePressed: () {
-                                                final isPlayingNotifier =
-                                                    AudioManager()
-                                                        .getIsPlayingNotifier(
-                                                            messageData[
-                                                                'audio']);
-                                                isPlayingNotifier.value
-                                                    ? _pauseAudio(
-                                                        messageData['audio'])
-                                                    : playAudio(
-                                                        messageData['audio']);
-                                              },
-                                              onSliderChanged: (value) {
-                                                AudioManager().seek(
-                                                    messageData['audio'],
-                                                    Duration(
-                                                        seconds:
-                                                            value.toInt()));
-                                                if (mounted) {
-                                                  setState(() {
-                                                    currentPosition = Duration(
-                                                        seconds: value.toInt());
-                                                  });
-                                                }
-                                              },
-                                            ),
-                                          const SizedBox(height: 4),
-                                          if (isMe)
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.only(top: 4),
-                                              child: isRead
-                                                  ? const Icon(Icons.check,
-                                                      color: Colors.blue,
-                                                      size: 18)
-                                                  : const Icon(Icons.check,
-                                                      color: Colors.grey,
-                                                      size: 18),
-                                            ),
-                                          Text(
-                                            _formatTimesChat(
-                                                messageData['timestamp']),
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey),
-                                          ),
-                                        ],
+                                        radius: 20,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                }),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          isMe
+                                              ? CrossAxisAlignment.end
+                                              : CrossAxisAlignment.start,
+                                      children: [
+                                        if (!isMe)
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[300],
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              senderName,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 4),
+                                        if (messageData['text'] != null)
+                                          Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isMe
+                                                      ? Colors.blue
+                                                      : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color:
+                                                    isMe
+                                                        ? Colors.blue
+                                                        : Colors.grey[300]!,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              messageData['text'],
+                                              style: TextStyle(
+                                                color:
+                                                    isMe
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        if (messageData['image'] != null)
+                                          GestureDetector(
+                                            onTap:
+                                                () => _showMedia(
+                                                  context,
+                                                  messageData['image'],
+                                                  false,
+                                                ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: CachedNetworkImage(
+                                                imageUrl: messageData['image'],
+                                                placeholder:
+                                                    (context, url) =>
+                                                        const CircularProgressIndicator.adaptive(),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        const Icon(Icons.error),
+                                                width: 150,
+                                                height: 150,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                        if (messageData['video'] != null)
+                                          GestureDetector(
+                                            onTap:
+                                                () => _showMedia(
+                                                  context,
+                                                  messageData['video'],
+                                                  true,
+                                                ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: FutureBuilder<Widget>(
+                                                future: _buildVideoThumbnail(
+                                                  messageData['video'],
+                                                ),
+                                                builder: (context, snapshot) {
+                                                  if (snapshot
+                                                          .connectionState ==
+                                                      ConnectionState.waiting) {
+                                                    return const CircularProgressIndicator.adaptive();
+                                                  } else if (snapshot.hasData) {
+                                                    return snapshot.data!;
+                                                  } else {
+                                                    return const Icon(
+                                                      Icons.video_library,
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        if (messageData['audio'] != null)
+                                          AudioCard(
+                                            audioUrl: messageData['audio'],
+                                            onPlayPausePressed: () {
+                                              final isPlayingNotifier =
+                                                  AudioManager()
+                                                      .getIsPlayingNotifier(
+                                                        messageData['audio'],
+                                                      );
+                                              isPlayingNotifier.value
+                                                  ? _pauseAudio(
+                                                    messageData['audio'],
+                                                  )
+                                                  : playAudio(
+                                                    messageData['audio'],
+                                                  );
+                                            },
+                                            onSliderChanged: (value) {
+                                              AudioManager().seek(
+                                                messageData['audio'],
+                                                Duration(
+                                                  seconds: value.toInt(),
+                                                ),
+                                              );
+                                              if (mounted) {
+                                                setState(() {
+                                                  currentPosition = Duration(
+                                                    seconds: value.toInt(),
+                                                  );
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        const SizedBox(height: 4),
+                                        if (isMe)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 4,
+                                            ),
+                                            child:
+                                                isRead
+                                                    ? const Icon(
+                                                      Icons.check,
+                                                      color: Colors.blue,
+                                                      size: 18,
+                                                    )
+                                                    : const Icon(
+                                                      Icons.check,
+                                                      color: Colors.grey,
+                                                      size: 18,
+                                                    ),
+                                          ),
+                                        Text(
+                                          _formatTimesChat(
+                                            messageData['timestamp'],
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
           if (_isRecording)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,

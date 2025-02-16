@@ -15,10 +15,12 @@ class AudioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentPositionNotifier =
-        AudioManager().getCurrentPositionNotifier(audioUrl);
-    final totalDurationNotifier =
-        AudioManager().getTotalDurationNotifier(audioUrl);
+    final currentPositionNotifier = AudioManager().getCurrentPositionNotifier(
+      audioUrl,
+    );
+    final totalDurationNotifier = AudioManager().getTotalDurationNotifier(
+      audioUrl,
+    );
     final isPlayingNotifier = AudioManager().getIsPlayingNotifier(audioUrl);
 
     return ValueListenableBuilder<Duration>(
@@ -35,8 +37,10 @@ class AudioCard extends StatelessWidget {
                     currentPosition.inSeconds.toDouble();
 
                 return Card(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 6,
+                    horizontal: 12,
+                  ),
                   elevation: 1,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -77,7 +81,8 @@ class AudioCard extends StatelessWidget {
                                     sliderTheme: SliderThemeData(
                                       trackShape: CustomTrackShape(),
                                       thumbShape: const RoundSliderThumbShape(
-                                          enabledThumbRadius: 6),
+                                        enabledThumbRadius: 6,
+                                      ),
                                       activeTrackColor: Colors.blueAccent,
                                       inactiveTrackColor:
                                           Colors.blueAccent.withValues(),
@@ -108,15 +113,11 @@ class AudioCard extends StatelessWidget {
                                 children: [
                                   Text(
                                     _formatDuration(currentPosition),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                    ),
+                                    style: const TextStyle(fontSize: 10),
                                   ),
                                   Text(
                                     _formatDuration(totalDuration),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                    ),
+                                    style: const TextStyle(fontSize: 10),
                                   ),
                                 ],
                               ),

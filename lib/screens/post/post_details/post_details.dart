@@ -70,7 +70,9 @@ class PostDetailsScreen extends StatelessWidget {
                         topRight: Radius.circular(20),
                       ),
                       child: CommentsScreen(
-                          postId: postId, postOwnerId: postOwnerId),
+                        postId: postId,
+                        postOwnerId: postOwnerId,
+                      ),
                     ),
                   ),
                 ],
@@ -125,11 +127,12 @@ class PostDetailsScreen extends StatelessWidget {
   }
 
   Future<int> _getCommentsCount(String postId) async {
-    final commentsSnapshot = await FirebaseFirestore.instance
-        .collection('posts')
-        .doc(postId)
-        .collection('comments')
-        .get();
+    final commentsSnapshot =
+        await FirebaseFirestore.instance
+            .collection('posts')
+            .doc(postId)
+            .collection('comments')
+            .get();
 
     return commentsSnapshot.size;
   }
@@ -159,8 +162,9 @@ class PostDetailsScreen extends StatelessWidget {
         final userSnapshot = await transaction.get(userRef);
         List<String> savedPosts = [];
         if (userSnapshot.exists) {
-          savedPosts =
-              List<String>.from(userSnapshot.data()?['saved_posts'] ?? []);
+          savedPosts = List<String>.from(
+            userSnapshot.data()?['saved_posts'] ?? [],
+          );
         }
         if (savedPosts.contains(postId)) {
           savedPosts.remove(postId);
@@ -189,14 +193,16 @@ class PostDetailsScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: SafeArea(
                 child: StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('posts')
-                      .doc(postId)
-                      .snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('posts')
+                          .doc(postId)
+                          .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
-                          child: CircularProgressIndicator.adaptive());
+                        child: CircularProgressIndicator.adaptive(),
+                      );
                     }
 
                     if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -211,16 +217,16 @@ class PostDetailsScreen extends StatelessWidget {
                     if (fileUrl.isNotEmpty) {
                       return _isVideo(fileUrl)
                           ? AspectRatio(
-                              aspectRatio: 16 / 9,
-                              child: VideoPlayerWidget(url: fileUrl),
-                            )
+                            aspectRatio: 16 / 9,
+                            child: VideoPlayerWidget(url: fileUrl),
+                          )
                           : ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: CachedNetworkImage(
-                                imageUrl: fileUrl,
-                                fit: BoxFit.cover,
-                              ),
-                            );
+                            borderRadius: BorderRadius.circular(20),
+                            child: CachedNetworkImage(
+                              imageUrl: fileUrl,
+                              fit: BoxFit.cover,
+                            ),
+                          );
                     } else {
                       return Center(
                         child: Padding(
@@ -245,138 +251,142 @@ class PostDetailsScreen extends StatelessWidget {
             backgroundColor: Colors.black,
           ),
           SliverList(
-            delegate: SliverChildListDelegate(
-              [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('posts')
-                        .doc(postId)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator.adaptive());
-                      }
-
-                      if (!snapshot.hasData || !snapshot.data!.exists) {
-                        return const Center(
-                            child: Text('Post não encontrado.'));
-                      }
-
-                      final postData =
-                          snapshot.data!.data() as Map<String, dynamic>;
-                      final userPhoto = postData['user_photo'] ?? '';
-                      final username =
-                          postData['username'] ?? 'Usuário desconhecido';
-                      final content = postData['content'] ?? 'Sem legenda';
-                      final likesData = postData['likes'];
-                      final likes = (likesData is List
-                              ? List<String>.from(
-                                  likesData.map((e) => e.toString()))
-                              : [])
-                          .toList();
-                      final isLiked = likes.contains(userId);
-
-                      return FutureBuilder<bool>(
-                        future: isPostSaved(postId, userId),
-                        builder: (context, savedSnapshot) {
-                          final isSaved = savedSnapshot.data ?? false;
-
-                          return FutureBuilder<int>(
-                            future: _getCommentsCount(postId),
-                            builder: (context, commentsSnapshot) {
-                              final commentsCount = commentsSnapshot.data ?? 0;
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 25,
-                                        backgroundImage: userPhoto.isNotEmpty
-                                            ? CachedNetworkImageProvider(
-                                                userPhoto)
-                                            : null,
-                                        child: userPhoto.isEmpty
-                                            ? const Icon(Icons.person)
-                                            : null,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        username,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      IconButton(
-                                        icon: Icon(
-                                          isSaved
-                                              ? Icons.bookmark
-                                              : Icons.bookmark_border,
-                                          color: isSaved ? Colors.blue : null,
-                                        ),
-                                        onPressed: () {
-                                          _savePost(postId, userId);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    content,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(
-                                          isLiked
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color: isLiked ? Colors.red : null,
-                                        ),
-                                        onPressed: () {
-                                          _likePost(postId, userId);
-                                        },
-                                      ),
-                                      Text('${likes.length} curtidas'),
-                                      const Spacer(),
-                                      IconButton(
-                                        icon: const Icon(Icons.comment),
-                                        onPressed: () async {
-                                          final postOwnerId =
-                                              await _getPostOwnerId(postId);
-                                          // ignore: use_build_context_synchronously
-                                          _showComments(context, postOwnerId);
-                                        },
-                                      ),
-                                      Text('$commentsCount comentários'),
-                                      const Spacer(),
-                                      IconButton(
-                                        icon: const Icon(Icons.share),
-                                        onPressed: () {
-                                          _showShareOptions(context);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        },
+            delegate: SliverChildListDelegate([
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: StreamBuilder<DocumentSnapshot>(
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('posts')
+                          .doc(postId)
+                          .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator.adaptive(),
                       );
-                    },
-                  ),
+                    }
+
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const Center(child: Text('Post não encontrado.'));
+                    }
+
+                    final postData =
+                        snapshot.data!.data() as Map<String, dynamic>;
+                    final userPhoto = postData['user_photo'] ?? '';
+                    final username =
+                        postData['username'] ?? 'Usuário desconhecido';
+                    final content = postData['content'] ?? 'Sem legenda';
+                    final likesData = postData['likes'];
+                    final likes =
+                        (likesData is List
+                                ? List<String>.from(
+                                  likesData.map((e) => e.toString()),
+                                )
+                                : [])
+                            .toList();
+                    final isLiked = likes.contains(userId);
+
+                    return FutureBuilder<bool>(
+                      future: isPostSaved(postId, userId),
+                      builder: (context, savedSnapshot) {
+                        final isSaved = savedSnapshot.data ?? false;
+
+                        return FutureBuilder<int>(
+                          future: _getCommentsCount(postId),
+                          builder: (context, commentsSnapshot) {
+                            final commentsCount = commentsSnapshot.data ?? 0;
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 25,
+                                      backgroundImage:
+                                          userPhoto.isNotEmpty
+                                              ? CachedNetworkImageProvider(
+                                                userPhoto,
+                                              )
+                                              : null,
+                                      child:
+                                          userPhoto.isEmpty
+                                              ? const Icon(Icons.person)
+                                              : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      username,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      icon: Icon(
+                                        isSaved
+                                            ? Icons.bookmark
+                                            : Icons.bookmark_border,
+                                        color: isSaved ? Colors.blue : null,
+                                      ),
+                                      onPressed: () {
+                                        _savePost(postId, userId);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  content,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: isLiked ? Colors.red : null,
+                                      ),
+                                      onPressed: () {
+                                        _likePost(postId, userId);
+                                      },
+                                    ),
+                                    Text('${likes.length} curtidas'),
+                                    const Spacer(),
+                                    IconButton(
+                                      icon: const Icon(Icons.comment),
+                                      onPressed: () async {
+                                        final postOwnerId =
+                                            await _getPostOwnerId(postId);
+                                        // ignore: use_build_context_synchronously
+                                        _showComments(context, postOwnerId);
+                                      },
+                                    ),
+                                    Text('$commentsCount comentários'),
+                                    const Spacer(),
+                                    IconButton(
+                                      icon: const Icon(Icons.share),
+                                      onPressed: () {
+                                        _showShareOptions(context);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
         ],
       ),

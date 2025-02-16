@@ -8,7 +8,6 @@ Widget buildShimmerPost() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         // Imagem ou Vídeo Placeholder
         Container(
           height: 250, // Altura para imagem ou vídeo
@@ -27,11 +26,7 @@ Widget buildShimmerPost() {
                 color: Colors.grey[300],
               ),
               const SizedBox(height: 4),
-              Container(
-                width: 150,
-                height: 14,
-                color: Colors.grey[300],
-              ),
+              Container(width: 150, height: 14, color: Colors.grey[300]),
             ],
           ),
         ),

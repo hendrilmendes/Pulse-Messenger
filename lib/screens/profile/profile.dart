@@ -19,9 +19,7 @@ class ProfileScreen extends StatelessWidget {
   void _openSettings(BuildContext context) {
     Navigator.push(
       context,
-      CupertinoPageRoute(
-        builder: (context) => const SettingsScreen(),
-      ),
+      CupertinoPageRoute(builder: (context) => const SettingsScreen()),
     );
   }
 
@@ -29,9 +27,7 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (context) => PostDetailsScreen(
-          postId: postId,
-        ),
+        builder: (context) => PostDetailsScreen(postId: postId),
       ),
     );
   }
@@ -50,18 +46,14 @@ class ProfileScreen extends StatelessWidget {
   void _openPostsScreen(BuildContext context) {
     Navigator.push(
       context,
-      CupertinoPageRoute(
-        builder: (context) => const ManagePostsScreen(),
-      ),
+      CupertinoPageRoute(builder: (context) => const ManagePostsScreen()),
     );
   }
 
   void _openFollowingScreen(BuildContext context) {
     Navigator.push(
       context,
-      CupertinoPageRoute(
-        builder: (context) => const FollowManagementScreen(),
-      ),
+      CupertinoPageRoute(builder: (context) => const FollowManagementScreen()),
     );
   }
 
@@ -91,16 +83,15 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .snapshots(),
         builder: (context, userSnapshot) {
           if (userSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: ShimmerProfileWidget.rectangular(
-                height: 200,
-              ),
+              child: ShimmerProfileWidget.rectangular(height: 200),
             );
           }
 
@@ -124,23 +115,26 @@ class ProfileScreen extends StatelessWidget {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.teal,
-                      backgroundImage: profilePictureUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(profilePictureUrl)
-                          : null,
-                      child: profilePictureUrl.isEmpty
-                          ? initials.isNotEmpty
-                              ? Text(
-                                  initials,
-                                  style: const TextStyle(
+                      backgroundImage:
+                          profilePictureUrl.isNotEmpty
+                              ? CachedNetworkImageProvider(profilePictureUrl)
+                              : null,
+                      child:
+                          profilePictureUrl.isEmpty
+                              ? initials.isNotEmpty
+                                  ? Text(
+                                    initials,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 24,
-                                      fontWeight: FontWeight.bold),
-                                )
-                              : const ShimmerProfileWidget.circular(
-                                  height: 50,
-                                  width: 50,
-                                )
-                          : null,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                  : const ShimmerProfileWidget.circular(
+                                    height: 50,
+                                    width: 50,
+                                  )
+                              : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -150,24 +144,19 @@ class ProfileScreen extends StatelessWidget {
                           // Nome do usuário
                           Text(
                             username,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 24,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           // Biografia do usuário
                           Text(
                             userData['bio'] ?? 'Sem biografia...',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: Colors.grey.shade600,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 16),
                           // Linha com contadores de Posts, Seguindo e Seguidores
@@ -175,31 +164,37 @@ class ProfileScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               StreamBuilder<QuerySnapshot>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('posts')
-                                    .where('user_id', isEqualTo: userId)
-                                    .snapshots(),
+                                stream:
+                                    FirebaseFirestore.instance
+                                        .collection('posts')
+                                        .where('user_id', isEqualTo: userId)
+                                        .snapshots(),
                                 builder: (context, postSnapshot) {
                                   if (postSnapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                        child: CircularProgressIndicator
-                                            .adaptive());
+                                      child:
+                                          CircularProgressIndicator.adaptive(),
+                                    );
                                   }
 
                                   // Contar postagens válidas
-                                  final postCount = postSnapshot.hasData
-                                      ? postSnapshot.data!.docs.where((doc) {
-                                          final postData = doc.data()
-                                              as Map<String, dynamic>?;
-                                          final fileUrl =
-                                              postData?['file_url'] ?? '';
-                                          return fileUrl.isNotEmpty &&
-                                              (fileUrl.contains('.jpg') ||
-                                                  fileUrl.contains('.png') ||
-                                                  fileUrl.contains('.mp4'));
-                                        }).length
-                                      : 0;
+                                  final postCount =
+                                      postSnapshot.hasData
+                                          ? postSnapshot.data!.docs.where((
+                                            doc,
+                                          ) {
+                                            final postData =
+                                                doc.data()
+                                                    as Map<String, dynamic>?;
+                                            final fileUrl =
+                                                postData?['file_url'] ?? '';
+                                            return fileUrl.isNotEmpty &&
+                                                (fileUrl.contains('.jpg') ||
+                                                    fileUrl.contains('.png') ||
+                                                    fileUrl.contains('.mp4'));
+                                          }).length
+                                          : 0;
 
                                   return _buildStatColumn(
                                     context,
@@ -210,17 +205,19 @@ class ProfileScreen extends StatelessWidget {
                                 },
                               ),
                               StreamBuilder<QuerySnapshot>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('following')
-                                    .doc(userId)
-                                    .collection('userFollowing')
-                                    .snapshots(),
+                                stream:
+                                    FirebaseFirestore.instance
+                                        .collection('following')
+                                        .doc(userId)
+                                        .collection('userFollowing')
+                                        .snapshots(),
                                 builder: (context, followingSnapshot) {
                                   if (followingSnapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                        child: CircularProgressIndicator
-                                            .adaptive());
+                                      child:
+                                          CircularProgressIndicator.adaptive(),
+                                    );
                                   }
 
                                   final followingCount =
@@ -237,22 +234,25 @@ class ProfileScreen extends StatelessWidget {
                                 },
                               ),
                               StreamBuilder<QuerySnapshot>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('followers')
-                                    .doc(userId)
-                                    .collection('userFollowers')
-                                    .snapshots(),
+                                stream:
+                                    FirebaseFirestore.instance
+                                        .collection('followers')
+                                        .doc(userId)
+                                        .collection('userFollowers')
+                                        .snapshots(),
                                 builder: (context, followerSnapshot) {
                                   if (followerSnapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
-                                        child: CircularProgressIndicator
-                                            .adaptive());
+                                      child:
+                                          CircularProgressIndicator.adaptive(),
+                                    );
                                   }
 
-                                  final followerCount = followerSnapshot.hasData
-                                      ? followerSnapshot.data!.docs.length
-                                      : 0;
+                                  final followerCount =
+                                      followerSnapshot.hasData
+                                          ? followerSnapshot.data!.docs.length
+                                          : 0;
 
                                   return _buildStatColumn(
                                     context,
@@ -274,23 +274,26 @@ class ProfileScreen extends StatelessWidget {
               // User's Posts
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('posts')
-                      .where('user_id', isEqualTo: userId)
-                      .orderBy('created_at', descending: true)
-                      .snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('posts')
+                          .where('user_id', isEqualTo: userId)
+                          .orderBy('created_at', descending: true)
+                          .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
-                          child: CircularProgressIndicator.adaptive());
+                        child: CircularProgressIndicator.adaptive(),
+                      );
                     }
 
                     // Filtra os posts que possuem um 'file_url' válido
-                    final postsWithMedia = snapshot.data!.docs.where((post) {
-                      final postData = post.data() as Map<String, dynamic>?;
-                      final postImage = postData?['file_url'] ?? '';
-                      return postImage.isNotEmpty;
-                    }).toList();
+                    final postsWithMedia =
+                        snapshot.data!.docs.where((post) {
+                          final postData = post.data() as Map<String, dynamic>?;
+                          final postImage = postData?['file_url'] ?? '';
+                          return postImage.isNotEmpty;
+                        }).toList();
 
                     if (postsWithMedia.isEmpty) {
                       return const Center(
@@ -304,10 +307,10 @@ class ProfileScreen extends StatelessWidget {
                     return GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 4,
-                        mainAxisSpacing: 4,
-                      ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
+                          ),
                       itemCount: postsWithMedia.length,
                       itemBuilder: (context, index) {
                         final post = postsWithMedia[index];
@@ -321,48 +324,54 @@ class ProfileScreen extends StatelessWidget {
                             children: [
                               isVideo
                                   ? FutureBuilder<String?>(
-                                      future:
-                                          _generateVideoThumbnail(postImage),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const Center(
-                                              child: CircularProgressIndicator
-                                                  .adaptive());
-                                        }
+                                    future: _generateVideoThumbnail(postImage),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                          child:
+                                              CircularProgressIndicator.adaptive(),
+                                        );
+                                      }
 
-                                        final thumbnailPath = snapshot.data;
-                                        return Container(
-                                          decoration: BoxDecoration(
-                                            image: thumbnailPath != null
-                                                ? DecorationImage(
+                                      final thumbnailPath = snapshot.data;
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          image:
+                                              thumbnailPath != null
+                                                  ? DecorationImage(
                                                     image: FileImage(
-                                                        File(thumbnailPath)),
+                                                      File(thumbnailPath),
+                                                    ),
                                                     fit: BoxFit.cover,
                                                   )
-                                                : null,
-                                            color: Colors.grey[200],
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            border: Border.all(
-                                                color: Colors.grey[300]!),
+                                                  : null,
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      decoration: BoxDecoration(
-                                        image: DecorationImage(
-                                          image: CachedNetworkImageProvider(
-                                              postImage),
-                                          fit: BoxFit.cover,
+                                          border: Border.all(
+                                            color: Colors.grey[300]!,
+                                          ),
                                         ),
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                            color: Colors.grey[300]!),
+                                      );
+                                    },
+                                  )
+                                  : Container(
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                        image: CachedNetworkImageProvider(
+                                          postImage,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.grey[300]!,
                                       ),
                                     ),
+                                  ),
                               if (isVideo)
                                 Positioned(
                                   bottom: 8,
@@ -407,17 +416,18 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildStatColumn(
-      BuildContext context, String label, String count, VoidCallback onTap) {
+    BuildContext context,
+    String label,
+    String count,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
           Text(
             count,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           Text(
             label,

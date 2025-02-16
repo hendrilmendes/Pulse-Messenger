@@ -1,0 +1,2 @@
+/home/Hendril/Documents/GitHub/Pulse-Messenger/android/app/.cxx/RelWithDebInfo/6h2n1o4y/x86/CMakeFiles/edit_cache.dir
+/home/Hendril/Documents/GitHub/Pulse-Messenger/android/app/.cxx/RelWithDebInfo/6h2n1o4y/x86/CMakeFiles/rebuild_cache.dir

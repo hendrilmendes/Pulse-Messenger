@@ -11,10 +11,7 @@ class ShimmerChatAvatar extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: Colors.grey[300],
-      ),
+      child: CircleAvatar(radius: radius, backgroundColor: Colors.grey[300]),
     );
   }
 }

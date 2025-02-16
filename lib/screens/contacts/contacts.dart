@@ -29,10 +29,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
-    final chatQuery = await FirebaseFirestore.instance
-        .collection('chats')
-        .where('participants', arrayContains: currentUserId)
-        .get();
+    final chatQuery =
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .where('participants', arrayContains: currentUserId)
+            .get();
 
     final Set<String> uniqueUserIds = {};
 
@@ -62,32 +63,38 @@ class _ContactsScreenState extends State<ContactsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.group_add),
-            onPressed: selectedContacts.isEmpty
-                ? null
-                : () async {
-                    await Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => CreateGroupScreen(
-                          selectedContacts: selectedContacts,
+            onPressed:
+                selectedContacts.isEmpty
+                    ? null
+                    : () async {
+                      await Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder:
+                              (context) => CreateGroupScreen(
+                                selectedContacts: selectedContacts,
+                              ),
                         ),
-                      ),
-                    );
-                    if (!mounted) return;
-                    setState(() {
-                      selectedContacts.clear();
-                      isSelecting = false;
-                    });
-                  },
+                      );
+                      if (!mounted) return;
+                      setState(() {
+                        selectedContacts.clear();
+                        isSelecting = false;
+                      });
+                    },
           ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId,
-                whereIn: chatUserIds.isNotEmpty ? chatUserIds : ['placeholder'])
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('users')
+                .where(
+                  FieldPath.documentId,
+                  whereIn:
+                      chatUserIds.isNotEmpty ? chatUserIds : ['placeholder'],
+                )
+                .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData || chatUserIds.isEmpty) {
             return const Center(child: CircularProgressIndicator.adaptive());
@@ -130,40 +137,44 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       // ignore: use_build_context_synchronously
                       context,
                       CupertinoPageRoute(
-                        builder: (context) => ChatDetailScreen(
-                          chatId: chatId,
-                          isGroup: false,
-                          userId: userId,
-                        ),
+                        builder:
+                            (context) => ChatDetailScreen(
+                              chatId: chatId,
+                              isGroup: false,
+                              userId: userId,
+                            ),
                       ),
                     );
                   }
                 },
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundImage: profilePicture.isNotEmpty
-                        ? CachedNetworkImageProvider(profilePicture)
-                        : null,
-                    child: profilePicture.isEmpty
-                        ? Text(username[0].toUpperCase())
-                        : null,
+                    backgroundImage:
+                        profilePicture.isNotEmpty
+                            ? CachedNetworkImageProvider(profilePicture)
+                            : null,
+                    child:
+                        profilePicture.isEmpty
+                            ? Text(username[0].toUpperCase())
+                            : null,
                   ),
                   title: Text(username),
                   subtitle: phone.isNotEmpty ? Text(phone) : null,
-                  trailing: showCheckbox
-                      ? Checkbox(
-                          value: isSelected,
-                          onChanged: (isSelected) {
-                            setState(() {
-                              if (isSelected == true) {
-                                selectedContacts.add(userId);
-                              } else {
-                                selectedContacts.remove(userId);
-                              }
-                            });
-                          },
-                        )
-                      : null,
+                  trailing:
+                      showCheckbox
+                          ? Checkbox(
+                            value: isSelected,
+                            onChanged: (isSelected) {
+                              setState(() {
+                                if (isSelected == true) {
+                                  selectedContacts.add(userId);
+                                } else {
+                                  selectedContacts.remove(userId);
+                                }
+                              });
+                            },
+                          )
+                          : null,
                 ),
               );
             },
@@ -177,10 +188,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return '';
 
-    final chatQuery = await FirebaseFirestore.instance
-        .collection('chats')
-        .where('participants', arrayContains: currentUserId)
-        .get();
+    final chatQuery =
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .where('participants', arrayContains: currentUserId)
+            .get();
 
     for (var chat in chatQuery.docs) {
       final participants = chat['participants'] as List<dynamic>;

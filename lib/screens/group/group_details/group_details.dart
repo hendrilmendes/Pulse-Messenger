@@ -41,10 +41,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   Future<void> _fetchGroupData() async {
     try {
-      groupData = await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(widget.chatId)
-          .get();
+      groupData =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .get();
 
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       setState(() {
@@ -78,10 +79,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'group_name': name,
-        'group_description': description,
-        'group_photo_url': photoUrl,
-      });
+            'group_name': name,
+            'group_description': description,
+            'group_photo_url': photoUrl,
+          });
       _fetchGroupData();
     } catch (error) {
       if (kDebugMode) {
@@ -98,8 +99,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         .collection('chats')
         .doc(widget.chatId)
         .update({
-      'participants': FieldValue.arrayRemove([currentUserId]),
-    });
+          'participants': FieldValue.arrayRemove([currentUserId]),
+        });
 
     // ignore: use_build_context_synchronously
     Navigator.pop(context);
@@ -236,7 +237,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                             title: const Text(
                               'Adicionar Membros',
                               style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold),
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             centerTitle: true,
                             automaticallyImplyLeading: false,
@@ -248,21 +251,25 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                 final user = allUsers[index];
                                 return ListTile(
                                   leading: CircleAvatar(
-                                    backgroundImage: user['profile_picture'] !=
-                                                null &&
-                                            user['profile_picture'].isNotEmpty
-                                        ? CachedNetworkImageProvider(
-                                            user['profile_picture'])
-                                        : const AssetImage(
-                                                'assets/default_avatar.png')
-                                            as ImageProvider,
+                                    backgroundImage:
+                                        user['profile_picture'] != null &&
+                                                user['profile_picture']
+                                                    .isNotEmpty
+                                            ? CachedNetworkImageProvider(
+                                              user['profile_picture'],
+                                            )
+                                            : const AssetImage(
+                                                  'assets/default_avatar.png',
+                                                )
+                                                as ImageProvider,
                                   ),
                                   title: Text(user['username']),
                                   trailing: IconButton(
                                     icon: const Icon(Icons.add),
                                     onPressed: () {
-                                      _addMemberToGroup(user[
-                                          'userId']); // Adicione o ID do usuário aqui
+                                      _addMemberToGroup(
+                                        user['userId'],
+                                      ); // Adicione o ID do usuário aqui
                                     },
                                   ),
                                 );
@@ -289,8 +296,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         .collection('chats')
         .doc(widget.chatId)
         .update({
-      'participants': FieldValue.arrayUnion([userId]),
-    });
+          'participants': FieldValue.arrayUnion([userId]),
+        });
 
     // Fechar o modal após adicionar
     // ignore: use_build_context_synchronously
@@ -321,169 +328,184 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator.adaptive())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundImage:
-                            groupData.data()?['group_image'] != null &&
-                                    groupData.data()?['group_image'] != ''
-                                ? CachedNetworkImageProvider(
-                                    groupData.data()!['group_image'])
-                                : const AssetImage('assets/default_avatar.png')
-                                    as ImageProvider,
-                        radius: 30,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        groupData.data()?['group_name'] ?? 'Grupo',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator.adaptive())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundImage:
+                              groupData.data()?['group_image'] != null &&
+                                      groupData.data()?['group_image'] != ''
+                                  ? CachedNetworkImageProvider(
+                                    groupData.data()!['group_image'],
+                                  )
+                                  : const AssetImage(
+                                        'assets/default_avatar.png',
+                                      )
+                                      as ImageProvider,
+                          radius: 30,
                         ),
+                        const SizedBox(width: 10),
+                        Text(
+                          groupData.data()?['group_name'] ?? 'Grupo',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (groupData.data()?['group_description'] != null)
+                      Text(
+                        groupData.data()?['group_description'] ?? '',
+                        style: const TextStyle(fontSize: 16),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  if (groupData.data()?['group_description'] != null)
+                    const SizedBox(height: 10),
                     Text(
-                      groupData.data()?['group_description'] ?? '',
+                      'Criado em: ${groupData.data()?['created_at'] != null ? dateFormat.format(groupData.data()!['created_at'].toDate()) : 'Desconhecido'}',
                       style: const TextStyle(fontSize: 16),
                     ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Criado em: ${groupData.data()?['created_at'] != null ? dateFormat.format(groupData.data()!['created_at'].toDate()) : 'Desconhecido'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(),
-                  const Text(
-                    'Membros:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 10),
+                    const Divider(),
+                    const Text(
+                      'Membros:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream: FirebaseFirestore.instance
-                        .collection('chats')
-                        .doc(widget.chatId)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator.adaptive());
-                      }
+                    const SizedBox(height: 10),
+                    StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      stream:
+                          FirebaseFirestore.instance
+                              .collection('chats')
+                              .doc(widget.chatId)
+                              .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator.adaptive(),
+                          );
+                        }
 
-                      if (!snapshot.hasData || !snapshot.data!.exists) {
-                        return const Center(
-                          child: Text('Nenhum dado encontrado'),
+                        if (!snapshot.hasData || !snapshot.data!.exists) {
+                          return const Center(
+                            child: Text('Nenhum dado encontrado'),
+                          );
+                        }
+
+                        final participants = List<String>.from(
+                          snapshot.data!.data()?['participants'] ?? [],
                         );
-                      }
+                        participants.sort((a, b) {
+                          if (a == adminId) return -1;
+                          if (b == adminId) return 1;
+                          return 0;
+                        });
 
-                      final participants = List<String>.from(
-                          snapshot.data!.data()?['participants'] ?? []);
-                      participants.sort((a, b) {
-                        if (a == adminId) return -1;
-                        if (b == adminId) return 1;
-                        return 0;
-                      });
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: participants.length,
+                          itemBuilder: (context, index) {
+                            final participantId = participants[index];
+                            return FutureBuilder<
+                              DocumentSnapshot<Map<String, dynamic>>
+                            >(
+                              future:
+                                  FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(participantId)
+                                      .get(),
+                              builder: (context, participantSnapshot) {
+                                if (participantSnapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const ListTile(
+                                    title: Text('Carregando...'),
+                                  );
+                                }
 
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: participants.length,
-                        itemBuilder: (context, index) {
-                          final participantId = participants[index];
-                          return FutureBuilder<
-                              DocumentSnapshot<Map<String, dynamic>>>(
-                            future: FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(participantId)
-                                .get(),
-                            builder: (context, participantSnapshot) {
-                              if (participantSnapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const ListTile(
-                                  title: Text('Carregando...'),
-                                );
-                              }
+                                if (!participantSnapshot.hasData ||
+                                    !participantSnapshot.data!.exists) {
+                                  return const ListTile(
+                                    title: Text('Usuário não encontrado'),
+                                  );
+                                }
 
-                              if (!participantSnapshot.hasData ||
-                                  !participantSnapshot.data!.exists) {
-                                return const ListTile(
-                                  title: Text('Usuário não encontrado'),
-                                );
-                              }
+                                final isGroupAdmin = participantId == adminId;
 
-                              final isGroupAdmin = participantId == adminId;
-
-                              final participantData =
-                                  participantSnapshot.data!.data();
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundImage: participantData?[
-                                              'profile_picture'] !=
-                                          null
-                                      ? CachedNetworkImageProvider(
-                                          participantData!['profile_picture'])
-                                      : const AssetImage(
-                                              'assets/default_avatar.png')
-                                          as ImageProvider,
-                                ),
-                                title: Row(
-                                  children: [
-                                    Text(participantData?['username'] ??
-                                        'Desconhecido'),
-                                    if (isGroupAdmin)
-                                      const Padding(
-                                        padding: EdgeInsets.all(8.0),
-                                        child: SizedBox(
-                                          height: 30,
-                                          width: 60,
-                                          child: Card(
-                                            child: Center(
-                                              child: Text(
-                                                'Admin',
-                                                style: TextStyle(
+                                final participantData =
+                                    participantSnapshot.data!.data();
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundImage:
+                                        participantData?['profile_picture'] !=
+                                                null
+                                            ? CachedNetworkImageProvider(
+                                              participantData!['profile_picture'],
+                                            )
+                                            : const AssetImage(
+                                                  'assets/default_avatar.png',
+                                                )
+                                                as ImageProvider,
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        participantData?['username'] ??
+                                            'Desconhecido',
+                                      ),
+                                      if (isGroupAdmin)
+                                        const Padding(
+                                          padding: EdgeInsets.all(8.0),
+                                          child: SizedBox(
+                                            height: 30,
+                                            width: 60,
+                                            child: Card(
+                                              child: Center(
+                                                child: Text(
+                                                  'Admin',
+                                                  style: TextStyle(
                                                     color: Colors.green,
-                                                    fontSize: 12),
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  if (widget.isGroup)
-                    Center(
-                      child: ElevatedButton.icon(
-                        onPressed: leaveGroup,
-                        icon: const Icon(Icons.exit_to_app),
-                        label: const Text('Sair do Grupo'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.red,
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    if (widget.isGroup)
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: leaveGroup,
+                          icon: const Icon(Icons.exit_to_app),
+                          label: const Text('Sair do Grupo'),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.red,
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
     );
   }
 }

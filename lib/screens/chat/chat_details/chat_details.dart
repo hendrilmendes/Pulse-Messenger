@@ -68,13 +68,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _updateTypingStatus(false);
     _checkIfBlocked();
 
-    _messagesStream = FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .limit(20)
-        .snapshots();
+    _messagesStream =
+        FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatId)
+            .collection('messages')
+            .orderBy('timestamp', descending: true)
+            .limit(20)
+            .snapshots();
 
     _loadUserData();
 
@@ -114,10 +115,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .collection('messages')
           .get()
           .then((querySnapshot) {
-        for (var doc in querySnapshot.docs) {
-          _checkAndMarkMessagesAsRead(doc.id);
-        }
-      });
+            for (var doc in querySnapshot.docs) {
+              _checkAndMarkMessagesAsRead(doc.id);
+            }
+          });
     }
 
     _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
@@ -168,26 +169,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        'text': text,
-        'sender_id': currentUserId,
-        'timestamp': Timestamp.now(),
-        'read': false,
-      });
+            'text': text,
+            'sender_id': currentUserId,
+            'timestamp': Timestamp.now(),
+            'read': false,
+          });
 
       // Atualiza o documento do chat com a última mensagem e hora
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
-          .update({
-        'last_message': text,
-        'last_message_time': Timestamp.now(),
-      });
+          .update({'last_message': text, 'last_message_time': Timestamp.now()});
 
       // Obtém o documento do chat para atualizar o unread_count dos outros participantes
-      final chatDoc = await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(widget.chatId)
-          .get();
+      final chatDoc =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .get();
 
       final chatData = chatDoc.data() as Map<String, dynamic>;
       final participants = List<String>.from(chatData['participants'] ?? []);
@@ -198,9 +197,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           await FirebaseFirestore.instance
               .collection('chats')
               .doc(widget.chatId)
-              .update({
-            'unread_count.$participantId': FieldValue.increment(1),
-          });
+              .update({'unread_count.$participantId': FieldValue.increment(1)});
         }
       }
 
@@ -208,10 +205,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _messageController.clear();
     } catch (e) {
       // Exibe um erro caso ocorra algum problema
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -219,9 +216,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final currentUserId = _auth.currentUser!.uid;
 
     try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('audios/${DateTime.now().millisecondsSinceEpoch}.m4a');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'audios/${DateTime.now().millisecondsSinceEpoch}.m4a',
+      );
       final uploadTask = storageRef.putFile(audioFile);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
@@ -232,26 +229,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        'audio': downloadUrl,
-        'sender_id': currentUserId,
-        'timestamp': Timestamp.now(),
-        'read': false,
-      });
+            'audio': downloadUrl,
+            'sender_id': currentUserId,
+            'timestamp': Timestamp.now(),
+            'read': false,
+          });
 
       // Atualiza o documento do chat com a última mensagem e hora
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': 'Mensagem de Áudio',
-        'last_message_time': Timestamp.now(),
-      });
+            'last_message': 'Mensagem de Áudio',
+            'last_message_time': Timestamp.now(),
+          });
 
       // Obtém o documento do chat para atualizar o unread_count dos outros participantes
-      final chatDoc = await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(widget.chatId)
-          .get();
+      final chatDoc =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .get();
 
       final chatData = chatDoc.data() as Map<String, dynamic>;
       final participants = List<String>.from(chatData['participants'] ?? []);
@@ -262,17 +260,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           await FirebaseFirestore.instance
               .collection('chats')
               .doc(widget.chatId)
-              .update({
-            'unread_count.$participantId': FieldValue.increment(1),
-          });
+              .update({'unread_count.$participantId': FieldValue.increment(1)});
         }
       }
     } catch (e) {
       // Exibe um erro caso ocorra algum problema
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending audio: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error sending audio: $e')));
     }
   }
 
@@ -294,8 +290,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Future<void> _sendMedia(
-      {required bool fromGallery, bool isVideo = false}) async {
+  Future<void> _sendMedia({
+    required bool fromGallery,
+    bool isVideo = false,
+  }) async {
     final currentUserId = _auth.currentUser!.uid;
 
     try {
@@ -310,7 +308,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
         if (result != null && result.files.isNotEmpty) {
           file = File(result.files.first.path!);
-          isVideoFile = result.files.first.extension == 'mp4' ||
+          isVideoFile =
+              result.files.first.extension == 'mp4' ||
               result.files.first.extension == 'mov';
         } else {
           throw 'Nenhuma mídia selecionada';
@@ -323,7 +322,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           pickedFile = await picker.pickVideo(source: ImageSource.camera);
         } else {
           pickedFile = await picker.pickImage(
-              source: ImageSource.camera, imageQuality: 100);
+            source: ImageSource.camera,
+            imageQuality: 100,
+          );
         }
 
         if (pickedFile != null) {
@@ -337,7 +338,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       // Carregar o arquivo no Firebase Storage
       final fileExtension = file.path.split('.').last;
       final storageRef = FirebaseStorage.instance.ref().child(
-          '${isVideoFile ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.$fileExtension');
+        '${isVideoFile ? 'videos' : 'images'}/${DateTime.now().millisecondsSinceEpoch}.$fileExtension',
+      );
       final uploadTask = storageRef.putFile(file);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
@@ -348,26 +350,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .doc(widget.chatId)
           .collection('messages')
           .add({
-        isVideoFile ? 'video' : 'image': downloadUrl,
-        'sender_id': currentUserId,
-        'timestamp': Timestamp.now(),
-        'read': false,
-      });
+            isVideoFile ? 'video' : 'image': downloadUrl,
+            'sender_id': currentUserId,
+            'timestamp': Timestamp.now(),
+            'read': false,
+          });
 
       // Atualiza o documento do chat com a última mensagem e hora
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'last_message': isVideoFile ? 'Vídeo' : 'Imagem',
-        'last_message_time': Timestamp.now(),
-      });
+            'last_message': isVideoFile ? 'Vídeo' : 'Imagem',
+            'last_message_time': Timestamp.now(),
+          });
 
       // Obtém o documento do chat para atualizar o unread_count dos outros participantes
-      final chatDoc = await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(widget.chatId)
-          .get();
+      final chatDoc =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(widget.chatId)
+              .get();
       final chatData = chatDoc.data() as Map<String, dynamic>;
       final participants = List<String>.from(chatData['participants'] ?? []);
 
@@ -377,16 +380,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           await FirebaseFirestore.instance
               .collection('chats')
               .doc(widget.chatId)
-              .update({
-            'unread_count.$participantId': FieldValue.increment(1),
-          });
+              .update({'unread_count.$participantId': FieldValue.increment(1)});
         }
       }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -394,8 +395,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        _recordingDuration =
-            Duration(seconds: _recordingDuration.inSeconds + 1);
+        _recordingDuration = Duration(
+          seconds: _recordingDuration.inSeconds + 1,
+        );
       });
     });
   }
@@ -418,10 +420,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       // Configuração de alta qualidade
-      const recordConfig = RecordConfig(
-        bitRate: 128000,
-        sampleRate: 44100,
-      );
+      const recordConfig = RecordConfig(bitRate: 128000, sampleRate: 44100);
 
       await _record.start(recordConfig, path: path);
       _startTimer(); // Inicia o temporizador
@@ -468,11 +467,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (context) => CallScreen(
-          channelName: widget.chatId,
-          appId: '3d15be3b03ee48b1bb438ea848726a1e',
-          userId: widget.userId,
-        ),
+        builder:
+            (context) => CallScreen(
+              channelName: widget.chatId,
+              appId: '3d15be3b03ee48b1bb438ea848726a1e',
+              userId: widget.userId,
+            ),
       ),
     );
   }
@@ -481,22 +481,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (context) => VideoCallScreen(
-          channelName: widget.chatId,
-          appId: '3d15be3b03ee48b1bb438ea848726a1e',
-          isVideoCall: true,
-          userId: widget.userId,
-        ),
+        builder:
+            (context) => VideoCallScreen(
+              channelName: widget.chatId,
+              appId: '3d15be3b03ee48b1bb438ea848726a1e',
+              isVideoCall: true,
+              userId: widget.userId,
+            ),
       ),
     );
   }
 
   Future<void> _loadUserData() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.userId)
+              .get();
 
       final lastSeen = doc.data()?['last_seen'] as Timestamp?;
       final lastSeenString =
@@ -513,10 +515,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         });
       }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading user data: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading user data: $e')));
     }
   }
 
@@ -543,10 +545,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return SizedBox(
       width: 150,
       height: 150,
-      child: Image.memory(
-        uint8list,
-        fit: BoxFit.cover,
-      ),
+      child: Image.memory(uint8list, fit: BoxFit.cover),
     );
   }
 
@@ -561,16 +560,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .doc(messageId)
           .get()
           .then((doc) {
-        if (doc.exists) {
-          final messageData = doc.data() as Map<String, dynamic>;
-          final senderId = messageData['sender_id'];
+            if (doc.exists) {
+              final messageData = doc.data() as Map<String, dynamic>;
+              final senderId = messageData['sender_id'];
 
-          // Marca a mensagem como lida somente se não for do próprio usuário
-          if (senderId != userId) {
-            doc.reference.update({'read': true});
-          }
-        }
-      });
+              // Marca a mensagem como lida somente se não for do próprio usuário
+              if (senderId != userId) {
+                doc.reference.update({'read': true});
+              }
+            }
+          });
     }
   }
 
@@ -584,16 +583,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         .doc(messageId)
         .get()
         .then((doc) {
-      if (doc.exists) {
-        final messageData = doc.data() as Map<String, dynamic>;
-        final senderId = messageData['sender_id'];
+          if (doc.exists) {
+            final messageData = doc.data() as Map<String, dynamic>;
+            final senderId = messageData['sender_id'];
 
-        // Marca a mensagem como lida somente se não for do próprio usuário
-        if (senderId != userId && !(messageData['read'] ?? false)) {
-          doc.reference.update({'read': true});
-        }
-      }
-    });
+            // Marca a mensagem como lida somente se não for do próprio usuário
+            if (senderId != userId && !(messageData['read'] ?? false)) {
+              doc.reference.update({'read': true});
+            }
+          }
+        });
   }
 
   Future<void> _updateTypingStatus(bool isTyping) async {
@@ -631,10 +630,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final otherUserId = widget.userId;
 
     // Busca o usuário atual e verifica se ele bloqueou o outro usuário
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserId)
-        .get();
+    DocumentSnapshot userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .get();
 
     List blockedUsers = userDoc['blocked_users'] ?? [];
     setState(() {
@@ -651,8 +651,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         .collection('users')
         .doc(currentUserId)
         .update({
-      'blocked_users': FieldValue.arrayRemove([otherUserId])
-    });
+          'blocked_users': FieldValue.arrayRemove([otherUserId]),
+        });
 
     setState(() {
       isBlocked = false;
@@ -691,10 +691,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             Navigator.push(
               context,
               CupertinoPageRoute(
-                builder: (context) => ConversationDetailsScreen(
-                  chatId: widget.chatId,
-                  userId: widget.userId,
-                ),
+                builder:
+                    (context) => ConversationDetailsScreen(
+                      chatId: widget.chatId,
+                      userId: widget.userId,
+                    ),
               ),
             );
           },
@@ -702,7 +703,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             children: [
               CircleAvatar(
                 backgroundImage: CachedNetworkImageProvider(
-                    _userData?['profile_picture'] ?? ''),
+                  _userData?['profile_picture'] ?? '',
+                ),
                 radius: 18,
               ),
               const SizedBox(width: 8),
@@ -715,10 +717,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       style: const TextStyle(fontSize: 18),
                     ),
                     StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('chats')
-                          .doc(widget.chatId)
-                          .snapshots(),
+                      stream:
+                          FirebaseFirestore.instance
+                              .collection('chats')
+                              .doc(widget.chatId)
+                              .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           final chatData =
@@ -728,8 +731,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               chatData['participants'] as List<dynamic>;
 
                           // Get the other user ID
-                          final otherUserId =
-                              participants.firstWhere((id) => id != userId);
+                          final otherUserId = participants.firstWhere(
+                            (id) => id != userId,
+                          );
 
                           // Check if the other user is typing
                           bool isOtherUserTyping =
@@ -766,13 +770,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         : 'Online'
                                     : 'Última vez visto: ${formatTimestamp(lastSeen)}',
                                 style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey),
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           );
                         }
-                        return const Text('Offline',
-                            style: TextStyle(fontSize: 12, color: Colors.grey));
+                        return const Text(
+                          'Offline',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        );
                       },
                     ),
                   ],
@@ -784,7 +792,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.call), onPressed: _callScreen),
           IconButton(
-              icon: const Icon(Icons.video_call), onPressed: _callScreen2),
+            icon: const Icon(Icons.video_call),
+            onPressed: _callScreen2,
+          ),
         ],
       ),
       body: Column(
@@ -795,12 +805,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator.adaptive());
+                    child: CircularProgressIndicator.adaptive(),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
-                      child: Text('Sem mensagens',
-                          style: TextStyle(fontSize: 16)));
+                    child: Text(
+                      'Sem mensagens',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
                 }
 
                 return ListView.builder(
@@ -840,12 +854,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     }
 
                     // Verifique se a data da mensagem atual é diferente da anterior
-                    bool showDateHeader = previousMessageDate == null ||
+                    bool showDateHeader =
+                        previousMessageDate == null ||
                         !isSameDay(messageDate, previousMessageDate);
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 16),
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -853,7 +870,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             Center(
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 16),
+                                  vertical: 8,
+                                  horizontal: 16,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.grey[200],
                                   borderRadius: BorderRadius.circular(12),
@@ -868,61 +887,67 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 ),
                               ),
                             ),
-                          SizedBox(
-                            height: 16,
-                          ),
+                          SizedBox(height: 16),
                           Row(
-                            mainAxisAlignment: isMe
-                                ? MainAxisAlignment.end
-                                : MainAxisAlignment.start,
+                            mainAxisAlignment:
+                                isMe
+                                    ? MainAxisAlignment.end
+                                    : MainAxisAlignment.start,
                             children: [
                               if (!isMe)
                                 CircleAvatar(
                                   backgroundImage: CachedNetworkImageProvider(
-                                      _userData?['profile_picture'] ?? ''),
+                                    _userData?['profile_picture'] ?? '',
+                                  ),
                                   radius: 20,
                                 ),
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Column(
-                                  crossAxisAlignment: isMe
-                                      ? CrossAxisAlignment.end
-                                      : CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                      isMe
+                                          ? CrossAxisAlignment.end
+                                          : CrossAxisAlignment.start,
                                   children: [
                                     if (messageData['text'] != null)
                                       Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: isMe
-                                              ? Colors.blue
-                                              : Colors.grey[300],
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          color:
+                                              isMe
+                                                  ? Colors.blue
+                                                  : Colors.grey[300],
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: Text(
                                           messageData['text'],
                                           style: TextStyle(
-                                            color: isMe
-                                                ? Colors.white
-                                                : Colors.black,
+                                            color:
+                                                isMe
+                                                    ? Colors.white
+                                                    : Colors.black,
                                           ),
                                         ),
                                       ),
                                     if (messageData['image'] != null)
                                       GestureDetector(
-                                        onTap: () => _showMedia(
-                                          context,
-                                          messageData['image'],
-                                          false,
-                                        ),
+                                        onTap:
+                                            () => _showMedia(
+                                              context,
+                                              messageData['image'],
+                                              false,
+                                            ),
                                         child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           child: CachedNetworkImage(
                                             imageUrl: messageData['image'],
-                                            placeholder: (context, url) =>
-                                                const CircularProgressIndicator
-                                                    .adaptive(),
+                                            placeholder:
+                                                (context, url) =>
+                                                    const CircularProgressIndicator.adaptive(),
                                             errorWidget:
                                                 (context, url, error) =>
                                                     const Icon(Icons.error),
@@ -934,29 +959,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                       ),
                                     if (messageData['video'] != null)
                                       GestureDetector(
-                                        onTap: () => _showMedia(
-                                          context,
-                                          messageData['video'],
-                                          true,
-                                        ),
+                                        onTap:
+                                            () => _showMedia(
+                                              context,
+                                              messageData['video'],
+                                              true,
+                                            ),
                                         child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           child: FutureBuilder<Widget>(
                                             future: _buildVideoThumbnail(
-                                                messageData['video']),
+                                              messageData['video'],
+                                            ),
                                             builder: (context, snapshot) {
                                               if (snapshot.connectionState ==
                                                   ConnectionState.waiting) {
-                                                return const CircularProgressIndicator
-                                                    .adaptive();
+                                                return const CircularProgressIndicator.adaptive();
                                               } else if (snapshot.hasData) {
                                                 return snapshot.data!;
                                               } else if (snapshot.hasError) {
                                                 return const Icon(Icons.error);
                                               } else {
                                                 return const Icon(
-                                                    Icons.video_library);
+                                                  Icons.video_library,
+                                                );
                                               }
                                             },
                                           ),
@@ -969,7 +997,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                           final isPlayingNotifier =
                                               AudioManager()
                                                   .getIsPlayingNotifier(
-                                                      messageData['audio']);
+                                                    messageData['audio'],
+                                                  );
 
                                           // Check if the audio is currently playing
                                           if (isPlayingNotifier.value) {
@@ -980,12 +1009,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         },
                                         onSliderChanged: (value) {
                                           AudioManager().seek(
-                                              messageData['audio'],
-                                              Duration(seconds: value.toInt()));
+                                            messageData['audio'],
+                                            Duration(seconds: value.toInt()),
+                                          );
                                           if (mounted) {
                                             setState(() {
                                               currentPosition = Duration(
-                                                  seconds: value.toInt());
+                                                seconds: value.toInt(),
+                                              );
                                             });
                                           }
                                         },
@@ -993,39 +1024,51 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     if (isMe)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 4),
-                                        child: isRead
-                                            ? const Stack(
-                                                children: [
-                                                  Icon(Icons.check,
+                                        child:
+                                            isRead
+                                                ? const Stack(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.check,
                                                       color: Colors.blue,
-                                                      size: 18),
-                                                  Positioned(
-                                                    left: 5,
-                                                    child: Icon(Icons.check,
+                                                      size: 18,
+                                                    ),
+                                                    Positioned(
+                                                      left: 5,
+                                                      child: Icon(
+                                                        Icons.check,
                                                         color: Colors.blue,
-                                                        size: 18),
-                                                  ),
-                                                ],
-                                              )
-                                            : const Stack(
-                                                children: [
-                                                  Icon(Icons.check,
+                                                        size: 18,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                )
+                                                : const Stack(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.check,
                                                       color: Colors.grey,
-                                                      size: 18),
-                                                  Positioned(
-                                                    left: 5,
-                                                    child: Icon(Icons.check,
+                                                      size: 18,
+                                                    ),
+                                                    Positioned(
+                                                      left: 5,
+                                                      child: Icon(
+                                                        Icons.check,
                                                         color: Colors.grey,
-                                                        size: 18),
-                                                  ),
-                                                ],
-                                              ),
+                                                        size: 18,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                       ),
                                     Text(
                                       _formatTimesChat(
-                                          messageData['timestamp']),
+                                        messageData['timestamp'],
+                                      ),
                                       style: const TextStyle(
-                                          fontSize: 12, color: Colors.grey),
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1045,8 +1088,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,
@@ -1097,11 +1142,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           else
             ActionBar(
               isRecording: _isRecording,
-              onCameraPressed: () =>
-                  _sendMedia(fromGallery: false, isVideo: false),
+              onCameraPressed:
+                  () => _sendMedia(fromGallery: false, isVideo: false),
               onGalleryPressed: () => _sendMedia(fromGallery: true),
-              onVideoPressed: () =>
-                  _sendMedia(fromGallery: false, isVideo: true),
+              onVideoPressed:
+                  () => _sendMedia(fromGallery: false, isVideo: true),
               onRecordPressed: _isRecording ? _stopRecording : _startRecording,
               onSendMessage: _sendMessage,
               messageController: _messageController,

@@ -19,12 +19,16 @@ class FullScreenMedia extends StatelessWidget {
             future: _buildMediaWidget(context, url, isVideo),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator.adaptive());
+                return const Center(
+                  child: CircularProgressIndicator.adaptive(),
+                );
               }
               if (snapshot.hasData) {
                 return Center(child: snapshot.data!);
               } else {
-                return const Center(child: Icon(Icons.error, color: Colors.white));
+                return const Center(
+                  child: Icon(Icons.error, color: Colors.white),
+                );
               }
             },
           ),
@@ -43,18 +47,24 @@ class FullScreenMedia extends StatelessWidget {
     );
   }
 
-  Future<Widget> _buildMediaWidget(BuildContext context, String url, bool isVideo) async {
+  Future<Widget> _buildMediaWidget(
+    BuildContext context,
+    String url,
+    bool isVideo,
+  ) async {
     if (isVideo) {
       final controller = VideoPlayerController.networkUrl(Uri.parse(url));
       await controller.initialize();
 
-      return VideoPlayerWidget(url: url
-      );
+      return VideoPlayerWidget(url: url);
     } else {
       return CachedNetworkImage(
         imageUrl: url,
-        placeholder: (context, url) => const CircularProgressIndicator.adaptive(),
-        errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.white),
+        placeholder:
+            (context, url) => const CircularProgressIndicator.adaptive(),
+        errorWidget:
+            (context, url, error) =>
+                const Icon(Icons.error, color: Colors.white),
         fit: BoxFit.contain,
       );
     }

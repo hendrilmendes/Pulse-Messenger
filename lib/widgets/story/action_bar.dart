@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:social/l10n/app_localizations.dart';
 
 class StoryActionBar extends StatefulWidget {
   final void Function() onPickImage;
@@ -72,8 +72,9 @@ class _StoryActionBarState extends State<StoryActionBar> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                     ),
                   ),
                 ),

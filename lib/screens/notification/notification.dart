@@ -34,38 +34,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .where('is_notified', isNotEqualTo: true)
         .snapshots()
         .listen((snapshot) {
-      for (var doc in snapshot.docChanges) {
-        if (doc.type == DocumentChangeType.added) {
-          final notification = doc.doc.data() as Map<String, dynamic>;
-          final type = notification['type'];
-          final fromUserId = notification['from_user_id'];
-          final notificationId = DateTime.now().millisecondsSinceEpoch;
+          for (var doc in snapshot.docChanges) {
+            if (doc.type == DocumentChangeType.added) {
+              final notification = doc.doc.data() as Map<String, dynamic>;
+              final type = notification['type'];
+              final fromUserId = notification['from_user_id'];
+              final notificationId = DateTime.now().millisecondsSinceEpoch;
 
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(fromUserId)
-              .get()
-              .then((userSnapshot) {
-            final userData = userSnapshot.data() as Map<String, dynamic>;
-            final fromUser = userData['username'] ?? 'Unknown';
-            final userPhotoUrl = userData['profile_picture'];
-            final notificationText = _buildNotificationText(type, fromUser);
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(fromUserId)
+                  .get()
+                  .then((userSnapshot) {
+                    final userData =
+                        userSnapshot.data() as Map<String, dynamic>;
+                    final fromUser = userData['username'] ?? 'Unknown';
+                    final userPhotoUrl = userData['profile_picture'];
+                    final notificationText = _buildNotificationText(
+                      type,
+                      fromUser,
+                    );
 
-            _notificationService.showNotification(
-              title: 'Pulse',
-              body: notificationText,
-              notificationId: notificationId,
-              userPhotoUrl: userPhotoUrl,
-            );
+                    _notificationService.showNotification(
+                      title: 'Pulse',
+                      body: notificationText,
+                      notificationId: notificationId,
+                      userPhotoUrl: userPhotoUrl,
+                    );
 
-            FirebaseFirestore.instance
-                .collection('notifications')
-                .doc(doc.doc.id)
-                .update({'is_notified': true});
-          });
-        }
-      }
-    });
+                    FirebaseFirestore.instance
+                        .collection('notifications')
+                        .doc(doc.doc.id)
+                        .update({'is_notified': true});
+                  });
+            }
+          }
+        });
   }
 
   @override
@@ -85,11 +89,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('notifications')
-            .where('user_id', isEqualTo: currentUser!.uid)
-            .orderBy('created_at', descending: true)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('notifications')
+                .where('user_id', isEqualTo: currentUser!.uid)
+                .orderBy('created_at', descending: true)
+                .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator.adaptive());
@@ -115,89 +120,105 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           return ListView(
-            children: groupedNotifications.entries.map((entry) {
-              final date = entry.key;
-              final notifications = entry.value;
+            children:
+                groupedNotifications.entries.map((entry) {
+                  final date = entry.key;
+                  final notifications = entry.value;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 16),
-                    child: Text(
-                      date,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 1, color: Colors.grey),
-                  ...notifications.map((notification) {
-                    final type = notification['type'];
-                    final fromUserId = notification['from_user_id'];
-                    final createdAt = notification['created_at'] as Timestamp;
-
-                    return FutureBuilder<DocumentSnapshot>(
-                      future: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(fromUserId)
-                          .get(),
-                      builder: (context, userSnapshot) {
-                        if (!userSnapshot.hasData) {
-                          return _buildShimmer();
-                        }
-
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>;
-                        final fromUser = userData['username'] ?? 'Unknown';
-                        final profilePictureUrl =
-                            userData['profile_picture'] ?? '';
-
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: profilePictureUrl.isNotEmpty
-                                ? CachedNetworkImageProvider(profilePictureUrl)
-                                : null,
-                            child: profilePictureUrl.isEmpty
-                                ? const Icon(Icons.person)
-                                : null,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 16,
+                        ),
+                        child: Text(
+                          date,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                          title: Text(_buildNotificationText(type, fromUser)),
-                          subtitle: Text(_formatTimestamp(createdAt)),
-                          trailing: _getNotificationIcon(type),
-                          onTap: () async {
-                            if (type == 'follow') {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(
-                                  builder: (context) => UserProfileScreen(
-                                    userId: fromUserId,
-                                    username: fromUser,
-                                  ),
-                                ),
-                              );
-                            } else if (type == 'like' || type == 'comment') {
-                              final postId = notification['post_id'];
-                              if (postId != null) {
-                                Navigator.push(
-                                  context,
-                                  CupertinoPageRoute(
-                                    builder: (context) =>
-                                        PostDetailsScreen(postId: postId),
-                                  ),
-                                );
-                              }
+                        ),
+                      ),
+                      const Divider(height: 1, color: Colors.grey),
+                      ...notifications.map((notification) {
+                        final type = notification['type'];
+                        final fromUserId = notification['from_user_id'];
+                        final createdAt =
+                            notification['created_at'] as Timestamp;
+
+                        return FutureBuilder<DocumentSnapshot>(
+                          future:
+                              FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(fromUserId)
+                                  .get(),
+                          builder: (context, userSnapshot) {
+                            if (!userSnapshot.hasData) {
+                              return _buildShimmer();
                             }
+
+                            final userData =
+                                userSnapshot.data!.data()
+                                    as Map<String, dynamic>;
+                            final fromUser = userData['username'] ?? 'Unknown';
+                            final profilePictureUrl =
+                                userData['profile_picture'] ?? '';
+
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage:
+                                    profilePictureUrl.isNotEmpty
+                                        ? CachedNetworkImageProvider(
+                                          profilePictureUrl,
+                                        )
+                                        : null,
+                                child:
+                                    profilePictureUrl.isEmpty
+                                        ? const Icon(Icons.person)
+                                        : null,
+                              ),
+                              title: Text(
+                                _buildNotificationText(type, fromUser),
+                              ),
+                              subtitle: Text(_formatTimestamp(createdAt)),
+                              trailing: _getNotificationIcon(type),
+                              onTap: () async {
+                                if (type == 'follow') {
+                                  Navigator.push(
+                                    context,
+                                    CupertinoPageRoute(
+                                      builder:
+                                          (context) => UserProfileScreen(
+                                            userId: fromUserId,
+                                            username: fromUser,
+                                          ),
+                                    ),
+                                  );
+                                } else if (type == 'like' ||
+                                    type == 'comment') {
+                                  final postId = notification['post_id'];
+                                  if (postId != null) {
+                                    Navigator.push(
+                                      context,
+                                      CupertinoPageRoute(
+                                        builder:
+                                            (context) => PostDetailsScreen(
+                                              postId: postId,
+                                            ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                            );
                           },
                         );
-                      },
-                    );
-                  })
-                ],
-              );
-            }).toList(),
+                      }),
+                    ],
+                  );
+                }).toList(),
           );
         },
       ),

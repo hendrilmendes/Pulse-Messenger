@@ -55,8 +55,11 @@ class _CallScreenState extends State<CallScreen> {
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
           debugPrint("Local user ${connection.localUid} joined");
         },
-        onUserJoined:
-            (RtcConnection connection, int remoteUid, int elapsed) async {
+        onUserJoined: (
+          RtcConnection connection,
+          int remoteUid,
+          int elapsed,
+        ) async {
           debugPrint("Remote user $remoteUid joined");
           setState(() {
             _remoteUid = remoteUid;
@@ -64,10 +67,11 @@ class _CallScreenState extends State<CallScreen> {
           _startTimer();
 
           // Fetch remote user info from Firebase
-          var userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(widget.userId)
-              .get();
+          var userDoc =
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(widget.userId)
+                  .get();
           if (userDoc.exists) {
             var userData = userDoc.data()!;
             if (mounted) {
@@ -78,8 +82,11 @@ class _CallScreenState extends State<CallScreen> {
             }
           }
         },
-        onUserOffline: (RtcConnection connection, int remoteUid,
-            UserOfflineReasonType reason) {
+        onUserOffline: (
+          RtcConnection connection,
+          int remoteUid,
+          UserOfflineReasonType reason,
+        ) {
           debugPrint("Remote user $remoteUid left channel");
           setState(() {
             _remoteUid = null;
@@ -147,41 +154,37 @@ class _CallScreenState extends State<CallScreen> {
         centerTitle: true,
       ),
       body: Center(
-        child: _remoteUid != null
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundImage: _remoteUserPhotoUrl != null
-                        ? CachedNetworkImageProvider(_remoteUserPhotoUrl!)
-                        : const NetworkImage(
-                            'https://www.example.com/default_profile.jpg'),
-                    backgroundColor: Colors.grey[800],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _remoteUserName ?? 'Nome do Usuário',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+        child:
+            _remoteUid != null
+                ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundImage:
+                          _remoteUserPhotoUrl != null
+                              ? CachedNetworkImageProvider(_remoteUserPhotoUrl!)
+                              : const NetworkImage(
+                                'https://www.example.com/default_profile.jpg',
+                              ),
+                      backgroundColor: Colors.grey[800],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Duração: ${_formatElapsedTime(_elapsedTime)}',
-                    style: const TextStyle(
-                      fontSize: 18,
+                    const SizedBox(height: 20),
+                    Text(
+                      _remoteUserName ?? 'Nome do Usuário',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
-              )
-            : const Text(
-                'Chamando...',
-                style: TextStyle(
-                  fontSize: 18,
-                ),
-              ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Duração: ${_formatElapsedTime(_elapsedTime)}',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ],
+                )
+                : const Text('Chamando...', style: TextStyle(fontSize: 18)),
       ),
       bottomNavigationBar: BottomAppBar(
         color: Colors.black,
@@ -190,9 +193,7 @@ class _CallScreenState extends State<CallScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             IconButton(
-              icon: Icon(
-                _isMuted ? Icons.mic_off : Icons.mic,
-              ),
+              icon: Icon(_isMuted ? Icons.mic_off : Icons.mic),
               color: Colors.white,
               onPressed: _toggleMute,
             ),

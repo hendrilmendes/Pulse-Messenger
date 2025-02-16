@@ -45,31 +45,37 @@ class _ChatsScreenState extends State<ChatsScreen> {
         .collection('chats')
         .snapshots()
         .listen((snapshot) {
-      for (var doc in snapshot.docChanges) {
-        if (doc.type == DocumentChangeType.modified) {
-          final chatData = doc.doc.data() as Map<String, dynamic>;
-          final participants =
-              List<String>.from(chatData['participants'] ?? []);
-          final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-          final lastMessageTime = chatData['last_message_time'] is Timestamp
-              ? chatData['last_message_time'].toDate()
-              : DateTime.now();
+          for (var doc in snapshot.docChanges) {
+            if (doc.type == DocumentChangeType.modified) {
+              final chatData = doc.doc.data() as Map<String, dynamic>;
+              final participants = List<String>.from(
+                chatData['participants'] ?? [],
+              );
+              final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+              final lastMessageTime =
+                  chatData['last_message_time'] is Timestamp
+                      ? chatData['last_message_time'].toDate()
+                      : DateTime.now();
 
-          if (currentUserId != null && participants.contains(currentUserId)) {
-            final otherParticipantId = participants
-                .firstWhere((id) => id != currentUserId, orElse: () => '');
+              if (currentUserId != null &&
+                  participants.contains(currentUserId)) {
+                final otherParticipantId = participants.firstWhere(
+                  (id) => id != currentUserId,
+                  orElse: () => '',
+                );
 
-            if (otherParticipantId.isNotEmpty) {
-              _sendPushNotification(
-                  otherParticipantId,
-                  chatData['last_message'] ?? '',
-                  int.tryParse(doc.doc.id.hashCode.toString()) ?? 0,
-                  lastMessageTime);
+                if (otherParticipantId.isNotEmpty) {
+                  _sendPushNotification(
+                    otherParticipantId,
+                    chatData['last_message'] ?? '',
+                    int.tryParse(doc.doc.id.hashCode.toString()) ?? 0,
+                    lastMessageTime,
+                  );
+                }
+              }
             }
           }
-        }
-      }
-    });
+        });
   }
 
   @override
@@ -88,12 +94,17 @@ class _ChatsScreenState extends State<ChatsScreen> {
     });
   }
 
-  Future<void> _sendPushNotification(String otherParticipantId,
-      String lastMessage, int index, DateTime messageTime) async {
-    final userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(otherParticipantId)
-        .get();
+  Future<void> _sendPushNotification(
+    String otherParticipantId,
+    String lastMessage,
+    int index,
+    DateTime messageTime,
+  ) async {
+    final userSnapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(otherParticipantId)
+            .get();
 
     if (userSnapshot.exists) {
       final userData = userSnapshot.data();
@@ -101,14 +112,16 @@ class _ChatsScreenState extends State<ChatsScreen> {
       final userPhotoUrl = userData?['profile_picture'];
 
       if (userData != null) {
-        final lastNotificationTime =
-            await _getLastNotificationTime(otherParticipantId);
+        final lastNotificationTime = await _getLastNotificationTime(
+          otherParticipantId,
+        );
         if (messageTime.isAfter(lastNotificationTime)) {
           await _notificationService.showNotification(
             title: 'Nova mensagem de $userName',
-            body: lastMessage.isNotEmpty
-                ? lastMessage
-                : 'Você tem uma nova mensagem.',
+            body:
+                lastMessage.isNotEmpty
+                    ? lastMessage
+                    : 'Você tem uma nova mensagem.',
             notificationId: index,
             userPhotoUrl: userPhotoUrl,
           );
@@ -124,10 +137,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   Future<DateTime> _getLastNotificationTime(String otherParticipantId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('notification_times')
-        .doc(otherParticipantId)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('notification_times')
+            .doc(otherParticipantId)
+            .get();
 
     if (doc.exists) {
       final data = doc.data();
@@ -139,23 +153,24 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   Future<void> _updateLastNotificationTime(
-      String otherParticipantId, DateTime messageTime) async {
+    String otherParticipantId,
+    DateTime messageTime,
+  ) async {
     await FirebaseFirestore.instance
         .collection('notification_times')
         .doc(otherParticipantId)
-        .set({
-      'last_notification_time': Timestamp.fromDate(messageTime),
-    });
+        .set({'last_notification_time': Timestamp.fromDate(messageTime)});
   }
 
   Future<bool> _checkIfBlocked(String otherParticipantId) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return false;
 
-    final userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserId)
-        .get();
+    final userSnapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .get();
 
     if (userSnapshot.exists) {
       final userData = userSnapshot.data();
@@ -201,31 +216,34 @@ class _ChatsScreenState extends State<ChatsScreen> {
             return const Center(child: Text('Usuário não logado'));
           }
 
-          final chats = snapshot.data!.docs.where((chat) {
-            final chatData = chat.data() as Map<String, dynamic>;
-            final participants =
-                List<String>.from(chatData['participants'] ?? []);
-            return participants.contains(currentUserId);
-          }).toList();
+          final chats =
+              snapshot.data!.docs.where((chat) {
+                final chatData = chat.data() as Map<String, dynamic>;
+                final participants = List<String>.from(
+                  chatData['participants'] ?? [],
+                );
+                return participants.contains(currentUserId);
+              }).toList();
 
           // Filtrar chats com base no termo de pesquisa
-          final filteredChats = chats.where((chat) {
-            final chatData = chat.data() as Map<String, dynamic>;
-            final lastMessage = chatData['last_message'] ?? '';
-            final groupName = chatData['is_group'] == true
-                ? chatData['group_name'] ?? ''
-                : '';
-            final otherParticipantId =
-                (List<String>.from(chatData['participants'] ?? [])
-                          ..remove(currentUserId))
-                        .firstOrNull ??
+          final filteredChats =
+              chats.where((chat) {
+                final chatData = chat.data() as Map<String, dynamic>;
+                final lastMessage = chatData['last_message'] ?? '';
+                final groupName =
+                    chatData['is_group'] == true
+                        ? chatData['group_name'] ?? ''
+                        : '';
+                final otherParticipantId =
+                    (List<String>.from(chatData['participants'] ?? [])
+                      ..remove(currentUserId)).firstOrNull ??
                     '';
 
-            return lastMessage.toLowerCase().contains(searchTerm) ||
-                groupName.toLowerCase().contains(searchTerm) ||
-                otherParticipantId.isNotEmpty &&
-                    otherParticipantId.toLowerCase().contains(searchTerm);
-          }).toList();
+                return lastMessage.toLowerCase().contains(searchTerm) ||
+                    groupName.toLowerCase().contains(searchTerm) ||
+                    otherParticipantId.isNotEmpty &&
+                        otherParticipantId.toLowerCase().contains(searchTerm);
+              }).toList();
 
           return ListView.builder(
             itemCount: filteredChats.length,
@@ -244,12 +262,14 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
               final lastMessage = chatData['last_message'] ?? '';
               final lastMessageTimeRaw = chatData['last_message_time'];
-              final lastMessageTime = lastMessageTimeRaw is Timestamp
-                  ? lastMessageTimeRaw.toDate()
-                  : DateTime.now();
+              final lastMessageTime =
+                  lastMessageTimeRaw is Timestamp
+                      ? lastMessageTimeRaw.toDate()
+                      : DateTime.now();
 
-              final participants =
-                  List<String>.from(chatData['participants'] ?? []);
+              final participants = List<String>.from(
+                chatData['participants'] ?? [],
+              );
               final isPinned = chatData['is_pinned'] ?? false;
               final isGroup = chatData['is_group'] ?? false;
 
@@ -320,7 +340,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                         return AlertDialog(
                           title: const Text('Excluir conversa'),
                           content: const Text(
-                              'Tem certeza de que deseja excluir esta conversa?'),
+                            'Tem certeza de que deseja excluir esta conversa?',
+                          ),
                           actions: [
                             TextButton(
                               child: const Text('Cancelar'),
@@ -347,10 +368,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   }
                 },
                 child: FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection(isGroup ? 'chats' : 'users')
-                      .doc(isGroup ? chat.id : otherParticipantId)
-                      .get(),
+                  future:
+                      FirebaseFirestore.instance
+                          .collection(isGroup ? 'chats' : 'users')
+                          .doc(isGroup ? chat.id : otherParticipantId)
+                          .get(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const ListTile(
@@ -369,16 +391,18 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     }
 
                     final data = snapshot.data!.data() as Map<String, dynamic>?;
-                    final title = data?[isGroup ? 'group_name' : 'username'] ??
+                    final title =
+                        data?[isGroup ? 'group_name' : 'username'] ??
                         'Desconhecido';
                     final profilePicture =
                         data?[isGroup ? 'group_image' : 'profile_picture'] ??
-                            '';
+                        '';
 
                     // Obtenha o unread_count do chat
-                    final unreadCount = chatData['unread_count'] is Map
-                        ? chatData['unread_count'][currentUserId] ?? 0
-                        : chatData['unread_count'] ?? 0;
+                    final unreadCount =
+                        chatData['unread_count'] is Map
+                            ? chatData['unread_count'][currentUserId] ?? 0
+                            : chatData['unread_count'] ?? 0;
 
                     return FutureBuilder<bool>(
                       future: _checkIfBlocked(otherParticipantId),
@@ -402,22 +426,25 @@ class _ChatsScreenState extends State<ChatsScreen> {
                             ),
                             title: const Text('Usuário Bloqueado'),
                             subtitle: const Text(
-                                'Você não pode ver as mensagens desse usuário.'),
+                              'Você não pode ver as mensagens desse usuário.',
+                            ),
                             trailing: Text(formattedTime),
                           );
                         }
 
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: profilePicture.isNotEmpty
-                                ? CachedNetworkImageProvider(profilePicture)
-                                : null,
-                            child: profilePicture.isEmpty
-                                ? Icon(
-                                    isGroup ? Icons.group : Icons.person,
-                                    color: Colors.white,
-                                  )
-                                : null,
+                            backgroundImage:
+                                profilePicture.isNotEmpty
+                                    ? CachedNetworkImageProvider(profilePicture)
+                                    : null,
+                            child:
+                                profilePicture.isEmpty
+                                    ? Icon(
+                                      isGroup ? Icons.group : Icons.person,
+                                      color: Colors.white,
+                                    )
+                                    : null,
                           ),
                           title: Text(title),
                           subtitle: Text(
@@ -450,9 +477,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                             await FirebaseFirestore.instance
                                 .collection('chats')
                                 .doc(chat.id)
-                                .update({
-                              'unread_count.$currentUserId': 0,
-                            });
+                                .update({'unread_count.$currentUserId': 0});
 
                             lastNotificationTimes[otherParticipantId] =
                                 DateTime.now();
@@ -461,17 +486,19 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               // ignore: use_build_context_synchronously
                               context,
                               CupertinoPageRoute(
-                                builder: (context) => isGroup
-                                    ? GroupChatScreen(
-                                        chatId: chat.id,
-                                        userId: currentUserId,
-                                        isGroup: isGroup,
-                                      )
-                                    : ChatDetailScreen(
-                                        chatId: chat.id,
-                                        userId: otherParticipantId,
-                                        isGroup: isGroup,
-                                      ),
+                                builder:
+                                    (context) =>
+                                        isGroup
+                                            ? GroupChatScreen(
+                                              chatId: chat.id,
+                                              userId: currentUserId,
+                                              isGroup: isGroup,
+                                            )
+                                            : ChatDetailScreen(
+                                              chatId: chat.id,
+                                              userId: otherParticipantId,
+                                              isGroup: isGroup,
+                                            ),
                               ),
                             );
                           },

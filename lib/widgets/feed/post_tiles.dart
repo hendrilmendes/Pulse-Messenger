@@ -48,8 +48,9 @@ class _PostTileState extends State<PostTile> {
 
   Future<void> _checkIfLiked() async {
     try {
-      final postRef =
-          FirebaseFirestore.instance.collection('posts').doc(widget.postId);
+      final postRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId);
       final postSnapshot = await postRef.get();
       final postData = postSnapshot.data() as Map<String, dynamic>;
       final likes = postData['likes'];
@@ -75,8 +76,9 @@ class _PostTileState extends State<PostTile> {
 
   Future<void> _toggleLike() async {
     try {
-      final postRef =
-          FirebaseFirestore.instance.collection('posts').doc(widget.postId);
+      final postRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId);
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         final postSnapshot = await transaction.get(postRef);
         if (!postSnapshot.exists) return;
@@ -89,14 +91,16 @@ class _PostTileState extends State<PostTile> {
         } else {
           likes.add(widget.currentUserId);
 
-          final notificationsCollection =
-              FirebaseFirestore.instance.collection('notifications');
-          final existingNotificationsQuery = notificationsCollection
-              .where('post_id', isEqualTo: widget.postId)
-              .where('from_user_id', isEqualTo: widget.currentUserId)
-              .where('is_notified', isEqualTo: false)
-              .limit(1)
-              .get();
+          final notificationsCollection = FirebaseFirestore.instance.collection(
+            'notifications',
+          );
+          final existingNotificationsQuery =
+              notificationsCollection
+                  .where('post_id', isEqualTo: widget.postId)
+                  .where('from_user_id', isEqualTo: widget.currentUserId)
+                  .where('is_notified', isEqualTo: false)
+                  .limit(1)
+                  .get();
 
           if ((await existingNotificationsQuery).docs.isEmpty) {
             await notificationsCollection.add({
@@ -238,24 +242,33 @@ class _PostTileState extends State<PostTile> {
           GestureDetector(
             onTap: widget.onProfileTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 4.0,
+                horizontal: 8.0,
+              ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundImage: widget.userProfilePicture.isNotEmpty
-                        ? CachedNetworkImageProvider(widget.userProfilePicture)
-                        : null,
+                    backgroundImage:
+                        widget.userProfilePicture.isNotEmpty
+                            ? CachedNetworkImageProvider(
+                              widget.userProfilePicture,
+                            )
+                            : null,
                     radius: 20,
-                    child: widget.userProfilePicture.isEmpty
-                        ? const Icon(Icons.person)
-                        : null,
+                    child:
+                        widget.userProfilePicture.isEmpty
+                            ? const Icon(Icons.person)
+                            : null,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       widget.username,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                   Text(
@@ -273,31 +286,29 @@ class _PostTileState extends State<PostTile> {
               onTap: _onImageTap,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-                child: _isVideo(widget.imageUrl!)
-                    ? AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: VideoPlayerWidget(url: widget.imageUrl!),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: widget.imageUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 400,
-                        placeholder: (context, url) => buildShimmerPost(),
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.error),
-                        fadeInDuration: const Duration(milliseconds: 300),
-                      ),
+                child:
+                    _isVideo(widget.imageUrl!)
+                        ? AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: VideoPlayerWidget(url: widget.imageUrl!),
+                        )
+                        : CachedNetworkImage(
+                          imageUrl: widget.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 400,
+                          placeholder: (context, url) => buildShimmerPost(),
+                          errorWidget:
+                              (context, url, error) => const Icon(Icons.error),
+                          fadeInDuration: const Duration(milliseconds: 300),
+                        ),
               ),
             ),
 
           // Post Content
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-            child: Text(
-              widget.content,
-              style: const TextStyle(fontSize: 16),
-            ),
+            child: Text(widget.content, style: const TextStyle(fontSize: 16)),
           ),
           const Divider(),
 
@@ -308,14 +319,14 @@ class _PostTileState extends State<PostTile> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('posts')
-                      .doc(widget.postId)
-                      .snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('posts')
+                          .doc(widget.postId)
+                          .snapshots(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return const SizedBox
-                          .shrink(); // Handle case where data is not yet available
+                      return const SizedBox.shrink(); // Handle case where data is not yet available
                     }
 
                     final postData =
@@ -336,7 +347,8 @@ class _PostTileState extends State<PostTile> {
                         IconButton(
                           icon: Icon(
                             _isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: _isLiked ? Colors.red : null,size: 18
+                            color: _isLiked ? Colors.red : null,
+                            size: 18,
                           ),
                           onPressed: _toggleLike,
                         ),
@@ -344,8 +356,10 @@ class _PostTileState extends State<PostTile> {
                         IconButton(
                           icon: const Icon(Icons.comment, size: 18),
                           onPressed: () {
-                            _showComments(context,
-                                postOwnerId); // Passar o ID do proprietário correto
+                            _showComments(
+                              context,
+                              postOwnerId,
+                            ); // Passar o ID do proprietário correto
                           },
                         ),
                         IconButton(

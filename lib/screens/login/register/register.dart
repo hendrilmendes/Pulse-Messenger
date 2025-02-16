@@ -34,10 +34,7 @@ class RegisterScreen extends StatelessWidget {
                   const Text(
                     'Crie sua Conta',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 30),
 
@@ -82,9 +79,9 @@ class RegisterScreen extends StatelessWidget {
                       try {
                         // Verifica se o email já está registrado
                         final isRegistered = await Provider.of<AuthProvider>(
-                                context,
-                                listen: false)
-                            .isEmailRegistered(email);
+                          context,
+                          listen: false,
+                        ).isEmailRegistered(email);
 
                         if (isRegistered) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -97,16 +94,18 @@ class RegisterScreen extends StatelessWidget {
                         }
 
                         // Se o email não estiver registrado, prossegue com o registro
-                        final result = await Provider.of<AuthProvider>(context,
-                                listen: false)
-                            .signUpWithEmail(email, password, context);
+                        final result = await Provider.of<AuthProvider>(
+                          context,
+                          listen: false,
+                        ).signUpWithEmail(email, password, context);
 
                         // Verifica se o usuário foi criado com sucesso
                         if (result != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content:
-                                  Text('Registro bem-sucedido! Faça login.'),
+                              content: Text(
+                                'Registro bem-sucedido! Faça login.',
+                              ),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -135,13 +134,8 @@ class RegisterScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      'Criar',
-                      style: TextStyle(
-                        fontSize: 18,
-                      ),
-                    ),
-                  )
+                    child: const Text('Criar', style: TextStyle(fontSize: 18)),
+                  ),
                 ],
               ),
             ),

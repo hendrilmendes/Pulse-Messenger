@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:social/l10n/app_localizations.dart';
 
 class ActionBar extends StatefulWidget {
   final bool isRecording;
@@ -83,8 +83,9 @@ class _ActionBarState extends State<ActionBar> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                     ),
                     onChanged: (text) {
                       setState(() {});
@@ -103,9 +104,10 @@ class _ActionBarState extends State<ActionBar> {
                   widget.messageController.text.isNotEmpty
                       ? Icons.send
                       : (widget.isRecording ? Icons.stop : Icons.mic),
-                  color: widget.messageController.text.isNotEmpty
-                      ? Colors.blue
-                      : (widget.isRecording ? Colors.red : Colors.blue),
+                  color:
+                      widget.messageController.text.isNotEmpty
+                          ? Colors.blue
+                          : (widget.isRecording ? Colors.red : Colors.blue),
                 ),
                 onPressed: () {
                   if (widget.messageController.text.isNotEmpty) {

@@ -9,10 +9,11 @@ class StoryViewsScreen extends StatelessWidget {
 
   Future<Map<String, dynamic>> _getUserData(String userId) async {
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .get();
 
       if (userDoc.exists) {
         return {
@@ -71,10 +72,11 @@ class StoryViewsScreen extends StatelessWidget {
                     return ListTile(
                       leading: CircleAvatar(
                         radius: 20,
-                        backgroundImage: userData['photo'] != ''
-                            ? NetworkImage(userData['photo'])
-                            : const AssetImage('assets/default_avatar.png')
-                                as ImageProvider,
+                        backgroundImage:
+                            userData['photo'] != ''
+                                ? NetworkImage(userData['photo'])
+                                : const AssetImage('assets/default_avatar.png')
+                                    as ImageProvider,
                       ),
                       title: Text(userData['name'] ?? 'Nome desconhecido'),
                     );

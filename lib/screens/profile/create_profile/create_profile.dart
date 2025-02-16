@@ -61,16 +61,17 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       // Exibe um alerta se os campos não forem preenchidos
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Erro'),
-          content: const Text('Por favor, preencha todos os campos.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Erro'),
+              content: const Text('Por favor, preencha todos os campos.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
             ),
-          ],
-        ),
       );
       return;
     }
@@ -83,13 +84,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     await FirebaseFirestore.instance
         .collection('users')
         .doc(widget.user.uid)
-        .set({
-      'username': username,
-      'profile_picture': _profileImageUrl,
-    });
+        .set({'username': username, 'profile_picture': _profileImageUrl});
 
     Navigator.pushReplacementNamed(
-        context, '/home'); // Redirecione para a tela inicial
+      context,
+      '/home',
+    ); // Redirecione para a tela inicial
   }
 
   @override
@@ -113,10 +113,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   onTap: _pickImage,
                   child: CircleAvatar(
                     radius: 50,
-                    backgroundImage: _profileImageUrl != null
-                        ? CachedNetworkImageProvider(_profileImageUrl!)
-                        : const AssetImage('assets/placeholder.png')
-                            as ImageProvider,
+                    backgroundImage:
+                        _profileImageUrl != null
+                            ? CachedNetworkImageProvider(_profileImageUrl!)
+                            : const AssetImage('assets/placeholder.png')
+                                as ImageProvider,
                   ),
                 ),
                 if (_profileImageUrl == null)

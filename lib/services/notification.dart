@@ -30,21 +30,22 @@ class NotificationService {
 
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
 
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse:
-          (NotificationResponse notificationResponse) {
+      onDidReceiveNotificationResponse: (
+        NotificationResponse notificationResponse,
+      ) {
         final String? payload = notificationResponse.payload;
         if (payload != null) {
           _handleNotificationPayload(payload);
@@ -54,17 +55,16 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     final iosPlatform =
-        _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
-    iosPlatform?.requestPermissions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+        _flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
+    iosPlatform?.requestPermissions(alert: true, badge: true, sound: true);
 
     _isInitialized = true;
   }
@@ -83,16 +83,17 @@ class NotificationService {
 
     AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      channelId,
-      channelName,
-      icon: '@drawable/ic_notification',
-      importance: Importance.max,
-      priority: Priority.high,
-      largeIcon: largeIcon,
-    );
+          channelId,
+          channelName,
+          icon: '@drawable/ic_notification',
+          importance: Importance.max,
+          priority: Priority.high,
+          largeIcon: largeIcon,
+        );
 
-    final NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
 
     await _flutterLocalNotificationsPlugin.show(
       notificationId,

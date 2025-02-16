@@ -61,12 +61,13 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         centerTitle: true,
       ),
       body: Center(
-        child: _controller.value.isInitialized
-            ? AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: VideoPlayer(_controller),
-              )
-            : const CircularProgressIndicator.adaptive(),
+        child:
+            _controller.value.isInitialized
+                ? AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                )
+                : const CircularProgressIndicator.adaptive(),
       ),
     );
   }
@@ -156,29 +157,26 @@ class _FullScreenAudioPlayerState extends State<FullScreenAudioPlayer> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
-              icon: Icon(
-                _isPlaying ? Icons.pause : Icons.play_arrow,
-                size: 64,
-              ),
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, size: 64),
               onPressed: _togglePlayPause,
             ),
             const SizedBox(height: 20),
             _isLoading
                 ? const CircularProgressIndicator.adaptive()
                 : Column(
-                    children: [
-                      Slider(
-                        value: _currentPosition.inMilliseconds.toDouble(),
-                        max: _totalDuration.inMilliseconds.toDouble(),
-                        onChanged: (value) {
-                          _seekTo(value);
-                        },
-                      ),
-                      Text(
-                        '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
-                      ),
-                    ],
-                  ),
+                  children: [
+                    Slider(
+                      value: _currentPosition.inMilliseconds.toDouble(),
+                      max: _totalDuration.inMilliseconds.toDouble(),
+                      onChanged: (value) {
+                        _seekTo(value);
+                      },
+                    ),
+                    Text(
+                      '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
+                    ),
+                  ],
+                ),
             Text(_isPlaying ? 'Tocando...' : 'Pausado'),
           ],
         ),

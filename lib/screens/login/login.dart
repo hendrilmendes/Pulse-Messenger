@@ -31,9 +31,7 @@ class LoginScreen extends StatelessWidget {
                 clipBehavior: Clip.antiAlias,
                 child: SizedBox(
                   width: 150,
-                  child: Image(
-                    image: AssetImage('assets/img/logo.png'),
-                  ),
+                  child: Image(image: AssetImage('assets/img/logo.png')),
                 ),
               ),
               const SizedBox(height: 20),
@@ -85,11 +83,12 @@ class LoginScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    CupertinoPageRoute(builder: (context) => ForgotPasswordScreen()),
+                    CupertinoPageRoute(
+                      builder: (context) => ForgotPasswordScreen(),
+                    ),
                   );
                 },
-                child: const Text(
-                  'Esqueceu a Senha?'),
+                child: const Text('Esqueceu a Senha?'),
               ),
 
               const SizedBox(height: 30),
@@ -109,14 +108,15 @@ class LoginScreen extends StatelessWidget {
                           final user = authProvider.currentUser;
 
                           if (user != null) {
-                            final hasProfile =
-                                await authProvider.hasCompleteProfile(user);
+                            final hasProfile = await authProvider
+                                .hasCompleteProfile(user);
 
                             if (hasProfile) {
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 CupertinoPageRoute(
-                                    builder: (context) => const HomeScreen()),
+                                  builder: (context) => const HomeScreen(),
+                                ),
                                 (Route<dynamic> route) =>
                                     false, // Remove todas as rotas anteriores
                               );
@@ -124,8 +124,9 @@ class LoginScreen extends StatelessWidget {
                               Navigator.pushReplacement(
                                 context,
                                 CupertinoPageRoute(
-                                  builder: (context) =>
-                                      CreateProfileScreen(user: user),
+                                  builder:
+                                      (context) =>
+                                          CreateProfileScreen(user: user),
                                 ),
                               );
                             }
@@ -134,7 +135,8 @@ class LoginScreen extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'Falha ao fazer login. Verifique suas credenciais.'),
+                                'Falha ao fazer login. Verifique suas credenciais.',
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -155,12 +157,7 @@ class LoginScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 18,
-                      ),
-                    ),
+                    child: const Text('Login', style: TextStyle(fontSize: 18)),
                   );
                 },
               ),
@@ -178,21 +175,25 @@ class LoginScreen extends StatelessWidget {
                           final user = authProvider.currentUser;
 
                           if (user != null) {
-                            final hasProfile =
-                            await authProvider.hasCompleteProfile(user);
+                            final hasProfile = await authProvider
+                                .hasCompleteProfile(user);
 
                             if (hasProfile) {
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 CupertinoPageRoute(
-                                    builder: (context) => const HomeScreen()),
-                                    (Route<dynamic> route) => false, // Remove todas as rotas anteriores
+                                  builder: (context) => const HomeScreen(),
+                                ),
+                                (Route<dynamic> route) =>
+                                    false, // Remove todas as rotas anteriores
                               );
                             } else {
                               Navigator.pushReplacement(
                                 context,
                                 CupertinoPageRoute(
-                                  builder: (context) => CreateProfileScreen(user: user),
+                                  builder:
+                                      (context) =>
+                                          CreateProfileScreen(user: user),
                                 ),
                               );
                             }
@@ -224,10 +225,7 @@ class LoginScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          'assets/img/google_logo.png',
-                          height: 24.0,
-                        ),
+                        Image.asset('assets/img/google_logo.png', height: 24.0),
                         const SizedBox(width: 8.0),
                         const Text('Login com Google'),
                       ],

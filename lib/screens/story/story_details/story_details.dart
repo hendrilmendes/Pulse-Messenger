@@ -54,11 +54,12 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
 
   Future<void> _fetchStories() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('user_id', isEqualTo: widget.userId)
-          .orderBy('created_at', descending: false)
-          .get();
+      final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('stories')
+              .where('user_id', isEqualTo: widget.userId)
+              .orderBy('created_at', descending: false)
+              .get();
 
       if (querySnapshot.docs.isEmpty) {
         if (mounted) {
@@ -136,159 +137,176 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: _hasError
-          ? Center(
-              child: Text(_errorMessage,
-                  style: const TextStyle(color: Colors.white)))
-          : _stories.isEmpty
+      body:
+          _hasError
+              ? Center(
+                child: Text(
+                  _errorMessage,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              )
+              : _stories.isEmpty
               ? const Center(child: CircularProgressIndicator.adaptive())
               : GestureDetector(
-                  onTapDown: (details) {
-                    if (details.globalPosition.dx <
-                        MediaQuery.of(context).size.width / 2) {
-                      _pageController.previousPage(
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOut,
-                      );
-                    } else {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOut,
-                      );
-                    }
-                  },
-                  child: Stack(
-                    children: [
-                      PageView.builder(
-                        controller: _pageController,
-                        itemCount: _stories.length,
-                        itemBuilder: (context, index) {
-                          final story = _stories[index];
-                          final isVideo = story['media_type'] == 'video';
-                          final mediaUrl = story['media_url'] ?? '';
+                onTapDown: (details) {
+                  if (details.globalPosition.dx <
+                      MediaQuery.of(context).size.width / 2) {
+                    _pageController.previousPage(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                    );
+                  } else {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                },
+                child: Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      itemCount: _stories.length,
+                      itemBuilder: (context, index) {
+                        final story = _stories[index];
+                        final isVideo = story['media_type'] == 'video';
+                        final mediaUrl = story['media_url'] ?? '';
 
-                          if (!isVideo) {
-                            _disposeVideo();
-                          } else if (_videoPlayerController == null ||
-                              !_videoPlayerController!.value.isInitialized) {
-                            _disposeVideo();
-                            _videoPlayerController =
-                                VideoPlayerController.network(mediaUrl)
-                                  ..initialize().then((_) {
-                                    setState(() {});
-                                    _videoPlayerController!.play();
-                                  }).catchError((e) {
-                                    setState(() {
-                                      _hasError = true;
-                                      _errorMessage =
-                                          'Erro ao carregar vídeo: $e';
+                        if (!isVideo) {
+                          _disposeVideo();
+                        } else if (_videoPlayerController == null ||
+                            !_videoPlayerController!.value.isInitialized) {
+                          _disposeVideo();
+                          _videoPlayerController =
+                              VideoPlayerController.networkUrl(mediaUrl)
+                                ..initialize()
+                                    .then((_) {
+                                      setState(() {});
+                                      _videoPlayerController!.play();
+                                    })
+                                    .catchError((e) {
+                                      setState(() {
+                                        _hasError = true;
+                                        _errorMessage =
+                                            'Erro ao carregar vídeo: $e';
+                                      });
                                     });
-                                  });
-                          }
+                        }
 
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              story['media_type'] == 'image'
-                                  ? CachedNetworkImage(
-                                      imageUrl: story['media_url'],
-                                      fit: BoxFit.cover,
-                                      errorWidget: (context, url, error) =>
-                                          const Center(
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            story['media_type'] == 'image'
+                                ? CachedNetworkImage(
+                                  imageUrl: story['media_url'],
+                                  fit: BoxFit.cover,
+                                  errorWidget:
+                                      (context, url, error) => const Center(
                                         child: Text(
                                           'Falha ao carregar imagem',
                                           style: TextStyle(color: Colors.white),
                                         ),
                                       ),
-                                      placeholder: (context, url) =>
-                                          const Center(
+                                  placeholder:
+                                      (context, url) => const Center(
                                         child:
                                             CircularProgressIndicator.adaptive(
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  Colors.white),
-                                        ),
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                            ),
                                       ),
-                                    )
-                                  : story['media_type'] == 'video' &&
-                                          _videoPlayerController
-                                                  ?.value.isInitialized ==
-                                              true
-                                      ? VideoPlayer(_videoPlayerController!)
-                                      : const Center(
-                                          child: CircularProgressIndicator
-                                              .adaptive(),
-                                        ),
-                              Positioned(
-                                top: 60,
-                                left: 10,
-                                right: 10,
+                                )
+                                : story['media_type'] == 'video' &&
+                                    _videoPlayerController
+                                            ?.value
+                                            .isInitialized ==
+                                        true
+                                ? VideoPlayer(_videoPlayerController!)
+                                : const Center(
+                                  child: CircularProgressIndicator.adaptive(),
+                                ),
+                            Positioned(
+                              top: 60,
+                              left: 10,
+                              right: 10,
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 20,
+                                    backgroundImage:
+                                        story['user_photo'].isNotEmpty
+                                            ? CachedNetworkImageProvider(
+                                              story['user_photo'],
+                                            )
+                                            : null,
+                                    child:
+                                        story['user_photo'].isEmpty
+                                            ? const Icon(
+                                              Icons.person,
+                                              color: Colors.white,
+                                            )
+                                            : null,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    story['username'] ?? 'Unknown',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    DateFormat(
+                                      'HH:mm',
+                                    ).format(story['created_at'].toDate()),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 20,
+                              left: 10,
+                              right: 10,
+                              child: Text(
+                                story['story_content'] ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 10,
+                              left: 10,
+                              child: GestureDetector(
+                                onTap: () => _showViews(context, story),
                                 child: Row(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundImage:
-                                          story['user_photo'].isNotEmpty
-                                              ? CachedNetworkImageProvider(
-                                                  story['user_photo'])
-                                              : null,
-                                      child: story['user_photo'].isEmpty
-                                          ? const Icon(Icons.person,
-                                              color: Colors.white)
-                                          : null,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      story['username'] ?? 'Unknown',
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 16),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      DateFormat('HH:mm')
-                                          .format(story['created_at'].toDate()),
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 14),
+                                    Icon(
+                                      Icons.visibility,
+                                      color: Colors.white,
+                                      size: 40,
                                     ),
                                   ],
                                 ),
                               ),
-                              Positioned(
-                                bottom: 20,
-                                left: 10,
-                                right: 10,
-                                child: Text(
-                                  story['story_content'] ?? '',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 10,
-                                left: 10,
-                                child: GestureDetector(
-                                  onTap: () => _showViews(context, story),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.visibility,
-                                        color: Colors.white,
-                                        size: 40,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
+              ),
     );
   }
 }

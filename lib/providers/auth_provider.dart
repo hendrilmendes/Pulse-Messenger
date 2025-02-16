@@ -44,7 +44,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<User?> signUpWithEmail(
-      String email, String password, BuildContext context) async {
+    String email,
+    String password,
+    BuildContext context,
+  ) async {
     try {
       final result = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -127,7 +130,8 @@ class AuthProvider with ChangeNotifier {
         if (result.user != null) {
           if (kDebugMode) {
             print(
-                'Login com Google bem-sucedido para o usuário: ${result.user?.email}');
+              'Login com Google bem-sucedido para o usuário: ${result.user?.email}',
+            );
           }
         } else {
           if (kDebugMode) {
@@ -152,7 +156,9 @@ class AuthProvider with ChangeNotifier {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
     } catch (e) {
-      throw Exception('Erro ao enviar e-mail de redefinição de senha: ${e.toString()}');
+      throw Exception(
+        'Erro ao enviar e-mail de redefinição de senha: ${e.toString()}',
+      );
     }
   }
 }

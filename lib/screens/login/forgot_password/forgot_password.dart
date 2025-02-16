@@ -49,8 +49,10 @@ class ForgotPasswordScreen extends StatelessWidget {
 
                   if (email.isNotEmpty) {
                     try {
-                      await Provider.of<AuthProvider>(context, listen: false)
-                          .resetPassword(email);
+                      await Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      ).resetPassword(email);
 
                       // ignore: use_build_context_synchronously
                       ScaffoldMessenger.of(context).showSnackBar(

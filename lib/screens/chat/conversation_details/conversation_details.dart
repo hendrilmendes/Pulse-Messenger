@@ -24,39 +24,41 @@ class ConversationDetailsScreen extends StatelessWidget {
 
   Future<List<Map<String, dynamic>>> _fetchMedia() async {
     try {
-      QuerySnapshot messagesDocs = await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .get();
+      QuerySnapshot messagesDocs =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(chatId)
+              .collection('messages')
+              .get();
 
       if (kDebugMode) {
         print('Queried documents count: ${messagesDocs.docs.length}');
       }
 
-      List<Map<String, dynamic>> mediaList = messagesDocs.docs
-          .map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (kDebugMode) {
-              print('Document data: $data');
-            }
+      List<Map<String, dynamic>> mediaList =
+          messagesDocs.docs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                if (kDebugMode) {
+                  print('Document data: $data');
+                }
 
-            if (data.containsKey('audio') && data['audio'] != null) {
-              return {'type': 'audio', 'url': data['audio']};
-            } else if (data.containsKey('image') && data['image'] != null) {
-              return {'type': 'image', 'url': data['image']};
-            } else if (data.containsKey('video') && data['video'] != null) {
-              return {'type': 'video', 'url': data['video']};
-            } else if (data.containsKey('document') &&
-                data['document'] != null) {
-              return {'type': 'document', 'url': data['document']};
-            } else {
-              return null;
-            }
-          })
-          .where((data) => data != null)
-          .cast<Map<String, dynamic>>()
-          .toList();
+                if (data.containsKey('audio') && data['audio'] != null) {
+                  return {'type': 'audio', 'url': data['audio']};
+                } else if (data.containsKey('image') && data['image'] != null) {
+                  return {'type': 'image', 'url': data['image']};
+                } else if (data.containsKey('video') && data['video'] != null) {
+                  return {'type': 'video', 'url': data['video']};
+                } else if (data.containsKey('document') &&
+                    data['document'] != null) {
+                  return {'type': 'document', 'url': data['document']};
+                } else {
+                  return null;
+                }
+              })
+              .where((data) => data != null)
+              .cast<Map<String, dynamic>>()
+              .toList();
 
       if (kDebugMode) {
         print('Filtered media: $mediaList');
@@ -70,14 +72,15 @@ class ConversationDetailsScreen extends StatelessWidget {
     }
   }
 
-// Verifica se o usuário já está bloqueado
+  // Verifica se o usuário já está bloqueado
   Future<bool> _isUserBlocked(String userId) async {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.uid)
+              .get();
 
       Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
 
@@ -104,8 +107,8 @@ class ConversationDetailsScreen extends StatelessWidget {
               .collection('users')
               .doc(currentUserId)
               .update({
-            'blocked_users': FieldValue.arrayRemove([userId])
-          });
+                'blocked_users': FieldValue.arrayRemove([userId]),
+              });
 
           // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
@@ -117,8 +120,8 @@ class ConversationDetailsScreen extends StatelessWidget {
               .collection('users')
               .doc(currentUserId)
               .update({
-            'blocked_users': FieldValue.arrayUnion([userId])
-          });
+                'blocked_users': FieldValue.arrayUnion([userId]),
+              });
 
           // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
@@ -145,8 +148,11 @@ class ConversationDetailsScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: FutureBuilder(
-        future: Future.wait(
-            [_fetchUserData(), _fetchMedia(), _isUserBlocked(userId)]),
+        future: Future.wait([
+          _fetchUserData(),
+          _fetchMedia(),
+          _isUserBlocked(userId),
+        ]),
         builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator.adaptive());
@@ -191,7 +197,8 @@ class ConversationDetailsScreen extends StatelessWidget {
           List<Map<String, dynamic>> documents =
               mediaList.where((media) => media['type'] == 'document').toList();
 
-          bool hasMedia = images.isNotEmpty ||
+          bool hasMedia =
+              images.isNotEmpty ||
               audios.isNotEmpty ||
               videos.isNotEmpty ||
               documents.isNotEmpty;
@@ -208,8 +215,9 @@ class ConversationDetailsScreen extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           backgroundImage: CachedNetworkImageProvider(
-                              userData['profile_picture'] ??
-                                  'https://example.com/default-pic.jpg'),
+                            userData['profile_picture'] ??
+                                'https://example.com/default-pic.jpg',
+                          ),
                           radius: 30,
                         ),
                         const SizedBox(width: 16),
@@ -218,22 +226,14 @@ class ConversationDetailsScreen extends StatelessWidget {
                           children: [
                             Text(
                               userData['username'] ?? 'User Name',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge!
-                                  .copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: Theme.of(context).textTheme.titleLarge!
+                                  .copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               userData['bio'] ?? 'Bio',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium!
-                                  .copyWith(
-                                    color: Colors.grey[600],
-                                  ),
+                              style: Theme.of(context).textTheme.bodyMedium!
+                                  .copyWith(color: Colors.grey[600]),
                             ),
                           ],
                         ),
@@ -281,17 +281,21 @@ class ConversationDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   if (hasMedia) ...[
                     if (images.isNotEmpty) ...[
-                      const Text('Imagens',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Imagens',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                        ),
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                            ),
                         itemCount: images.length,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -302,19 +306,22 @@ class ConversationDetailsScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 CupertinoPageRoute(
-                                  builder: (context) => FullScreenImageView(
-                                    imageUrl: media['url'],
-                                  ),
+                                  builder:
+                                      (context) => FullScreenImageView(
+                                        imageUrl: media['url'],
+                                      ),
                                 ),
                               );
                             },
                             child: CachedNetworkImage(
                               imageUrl: media['url'],
                               fit: BoxFit.cover,
-                              placeholder: (context, url) =>
-                                  const CircularProgressIndicator.adaptive(),
-                              errorWidget: (context, url, error) =>
-                                  const Icon(Icons.error),
+                              placeholder:
+                                  (context, url) =>
+                                      const CircularProgressIndicator.adaptive(),
+                              errorWidget:
+                                  (context, url, error) =>
+                                      const Icon(Icons.error),
                             ),
                           );
                         },
@@ -322,20 +329,24 @@ class ConversationDetailsScreen extends StatelessWidget {
                     ],
                     if (videos.isNotEmpty) ...[
                       const Divider(thickness: 1, color: Colors.grey),
-                      const Text('Vídeos',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Vídeos',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              2, // Ajuste o número de colunas conforme necessário
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                        ),
+                              crossAxisCount:
+                                  2, // Ajuste o número de colunas conforme necessário
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                            ),
                         itemCount: videos.length,
                         itemBuilder: (context, index) {
                           final media = videos[index];
@@ -355,10 +366,10 @@ class ConversationDetailsScreen extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       CupertinoPageRoute(
-                                        builder: (context) =>
-                                            FullScreenVideoPlayer(
-                                          videoUrl: media['url'],
-                                        ),
+                                        builder:
+                                            (context) => FullScreenVideoPlayer(
+                                              videoUrl: media['url'],
+                                            ),
                                       ),
                                     );
                                   },
@@ -367,10 +378,12 @@ class ConversationDetailsScreen extends StatelessWidget {
                               child: CachedNetworkImage(
                                 imageUrl: media['url'],
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) =>
-                                    const CircularProgressIndicator.adaptive(),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(Icons.error),
+                                placeholder:
+                                    (context, url) =>
+                                        const CircularProgressIndicator.adaptive(),
+                                errorWidget:
+                                    (context, url, error) =>
+                                        const Icon(Icons.error),
                               ),
                             ),
                           );
@@ -379,20 +392,24 @@ class ConversationDetailsScreen extends StatelessWidget {
                     ],
                     if (documents.isNotEmpty) ...[
                       const Divider(thickness: 1, color: Colors.grey),
-                      const Text('Documentos',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Documentos',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              2, // Ajuste o número de colunas conforme necessário
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                        ),
+                              crossAxisCount:
+                                  2, // Ajuste o número de colunas conforme necessário
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                            ),
                         itemCount: documents.length,
                         itemBuilder: (context, index) {
                           return Card(
@@ -411,8 +428,10 @@ class ConversationDetailsScreen extends StatelessWidget {
                                   },
                                 ),
                               ),
-                              child:
-                                  const Icon(Icons.document_scanner, size: 50),
+                              child: const Icon(
+                                Icons.document_scanner,
+                                size: 50,
+                              ),
                             ),
                           );
                         },
@@ -420,20 +439,24 @@ class ConversationDetailsScreen extends StatelessWidget {
                     ],
                     if (audios.isNotEmpty) ...[
                       const Divider(thickness: 1, color: Colors.grey),
-                      const Text('Áudios',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Áudios',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              2, // Ajuste o número de colunas conforme necessário
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                        ),
+                              crossAxisCount:
+                                  2, // Ajuste o número de colunas conforme necessário
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                            ),
                         itemCount: audios.length,
                         itemBuilder: (context, index) {
                           final media = audios[index];
@@ -453,10 +476,10 @@ class ConversationDetailsScreen extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       CupertinoPageRoute(
-                                        builder: (context) =>
-                                            FullScreenAudioPlayer(
-                                          audioUrl: media['url'],
-                                        ),
+                                        builder:
+                                            (context) => FullScreenAudioPlayer(
+                                              audioUrl: media['url'],
+                                            ),
                                       ),
                                     );
                                   },
@@ -470,9 +493,13 @@ class ConversationDetailsScreen extends StatelessWidget {
                     ],
                   ] else ...[
                     const Center(
-                      child: Text('Nenhuma mídia disponível',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Nenhuma mídia disponível',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ],

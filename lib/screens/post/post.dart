@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:social/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -60,9 +60,10 @@ class _PostScreenState extends State<PostScreen> {
   }
 
   Future<void> _pickFile(ImageSource source, String type) async {
-    final pickedFile = type == 'video'
-        ? await _picker.pickVideo(source: source)
-        : await _picker.pickImage(source: source);
+    final pickedFile =
+        type == 'video'
+            ? await _picker.pickVideo(source: source)
+            : await _picker.pickImage(source: source);
 
     if (pickedFile != null) {
       setState(() {
@@ -87,33 +88,35 @@ class _PostScreenState extends State<PostScreen> {
 
   void _initializeVideo(File videoFile) {
     _videoPlayerController = VideoPlayerController.file(videoFile)
-      ..initialize().then((_) {
-        if (mounted) {
-          final aspectRatio = _videoPlayerController!.value.aspectRatio;
+      ..initialize()
+          .then((_) {
+            if (mounted) {
+              final aspectRatio = _videoPlayerController!.value.aspectRatio;
 
-          double adjustedAspectRatio;
-          if (aspectRatio > 1) {
-            adjustedAspectRatio = aspectRatio;
-          } else {
-            adjustedAspectRatio = 1 / aspectRatio;
-          }
+              double adjustedAspectRatio;
+              if (aspectRatio > 1) {
+                adjustedAspectRatio = aspectRatio;
+              } else {
+                adjustedAspectRatio = 1 / aspectRatio;
+              }
 
-          _chewieController = ChewieController(
-            videoPlayerController: _videoPlayerController!,
-            autoPlay: false,
-            looping: false,
-            showControls: true,
-            allowFullScreen: false,
-            aspectRatio: adjustedAspectRatio,
-          );
+              _chewieController = ChewieController(
+                videoPlayerController: _videoPlayerController!,
+                autoPlay: false,
+                looping: false,
+                showControls: true,
+                allowFullScreen: false,
+                aspectRatio: adjustedAspectRatio,
+              );
 
-          setState(() {});
-        }
-      }).catchError((error) {
-        if (kDebugMode) {
-          print('Erro ao carregar vídeo: $error');
-        }
-      });
+              setState(() {});
+            }
+          })
+          .catchError((error) {
+            if (kDebugMode) {
+              print('Erro ao carregar vídeo: $error');
+            }
+          });
   }
 
   Future<String> _uploadFile(File file) async {
@@ -161,10 +164,11 @@ class _PostScreenState extends State<PostScreen> {
     final content = _contentController.text;
 
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
       final userData = userDoc.data();
       final username = userData?['username'] ?? 'Anonymous';
       final userPhotoUrl = userData?['profile_picture'] ?? '';
@@ -200,10 +204,10 @@ class _PostScreenState extends State<PostScreen> {
         }
       });
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       if (kDebugMode) {
         print('Erro: $e');
       }
@@ -232,10 +236,10 @@ class _PostScreenState extends State<PostScreen> {
       if (kDebugMode) {
         print('Erro ao excluir o post: $e');
       }
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao excluir o post: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao excluir o post: $e')));
     }
   }
 
@@ -275,33 +279,30 @@ class _PostScreenState extends State<PostScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
-                    image: _selectedFile != null
-                        ? DecorationImage(
-                            image: FileImage(_selectedFile!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: _selectedFile == null
-                      ? Center(
-                          child: Text(
-                            AppLocalizations.of(context)!.selectFile,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        )
-                      : _fileType == 'video' && _chewieController != null
-                          ? Chewie(
-                              controller: _chewieController!,
+                    image:
+                        _selectedFile != null
+                            ? DecorationImage(
+                              image: FileImage(_selectedFile!),
+                              fit: BoxFit.cover,
                             )
+                            : null,
+                  ),
+                  child:
+                      _selectedFile == null
+                          ? Center(
+                            child: Text(
+                              AppLocalizations.of(context)!.selectFile,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          )
+                          : _fileType == 'video' && _chewieController != null
+                          ? Chewie(controller: _chewieController!)
                           : _fileType == 'image'
-                              ? Image.file(
-                                  _selectedFile!,
-                                  fit: BoxFit.cover,
-                                )
-                              : Container(),
+                          ? Image.file(_selectedFile!, fit: BoxFit.cover)
+                          : Container(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -314,8 +315,10 @@ class _PostScreenState extends State<PostScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  prefixIcon:
-                      const Icon(Icons.content_paste, color: Colors.blue),
+                  prefixIcon: const Icon(
+                    Icons.content_paste,
+                    color: Colors.blue,
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {

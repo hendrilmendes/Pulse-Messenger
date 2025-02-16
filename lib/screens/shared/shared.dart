@@ -44,10 +44,11 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
 
     try {
       // Get chat user IDs
-      final chatQuery = await FirebaseFirestore.instance
-          .collection('chats')
-          .where('participants', arrayContains: currentUserId)
-          .get();
+      final chatQuery =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .where('participants', arrayContains: currentUserId)
+              .get();
 
       final Set<String> uniqueUserIds = {};
 
@@ -61,10 +62,11 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
       }
 
       // Fetch user data for chat users
-      final usersSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: uniqueUserIds.toList())
-          .get();
+      final usersSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where(FieldPath.documentId, whereIn: uniqueUserIds.toList())
+              .get();
 
       final chatUsers =
           usersSnapshot.docs.map((doc) => User.fromFirestore(doc)).toList();
@@ -86,9 +88,10 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
   void _filterUsers() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredUsers = _chatUsers.where((user) {
-        return user.username.toLowerCase().contains(query);
-      }).toList();
+      _filteredUsers =
+          _chatUsers.where((user) {
+            return user.username.toLowerCase().contains(query);
+          }).toList();
     });
   }
 
@@ -116,14 +119,15 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
           .doc(chatId)
           .collection('messages')
           .add({
-        'sender_id': _auth.currentUser!.uid,
-        'text': 'Um post foi compartilhado.',
-        'post_id': widget
-            .postId, // Você pode salvar o ID do post para futuras referências
-        'timestamp': FieldValue.serverTimestamp(),
-        'type':
-            'post_share', // Tipo de mensagem para identificar compartilhamento
-      });
+            'sender_id': _auth.currentUser!.uid,
+            'text': 'Um post foi compartilhado.',
+            'post_id':
+                widget
+                    .postId, // Você pode salvar o ID do post para futuras referências
+            'timestamp': FieldValue.serverTimestamp(),
+            'type':
+                'post_share', // Tipo de mensagem para identificar compartilhamento
+          });
 
       if (kDebugMode) {
         print('Post shared successfully!');
@@ -134,10 +138,10 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
       if (kDebugMode) {
         print('Error sharing post: $e');
       }
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao compartilhar: $e')),
-      );
+      ScaffoldMessenger.of(
+        // ignore: use_build_context_synchronously
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao compartilhar: $e')));
     }
   }
 
@@ -158,33 +162,36 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: _isLoading
-          ? const Center(child: ShimmerShareLoading())
-          : _hasError
+      body:
+          _isLoading
+              ? const Center(child: ShimmerShareLoading())
+              : _hasError
               ? Center(child: Text(_errorMessage))
               : Column(
-                  children: [
-                    SearchBarWidget(
-                      searchQuery: _searchController.text,
-                      onSearchChanged: (query) {
-                        setState(() {
-                          _searchController.text = query;
-                        });
-                      },
-                    ),
-                    Expanded(
-                      child: _filteredUsers.isEmpty
-                          ? const Center(
+                children: [
+                  SearchBarWidget(
+                    searchQuery: _searchController.text,
+                    onSearchChanged: (query) {
+                      setState(() {
+                        _searchController.text = query;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child:
+                        _filteredUsers.isEmpty
+                            ? const Center(
                               child: Text('Nenhum usuário encontrado'),
                             )
-                          : ListView.builder(
+                            : ListView.builder(
                               itemCount: _filteredUsers.length,
                               itemBuilder: (context, index) {
                                 final user = _filteredUsers[index];
                                 return ListTile(
                                   leading: CircleAvatar(
                                     backgroundImage: CachedNetworkImageProvider(
-                                        user.profilePicture),
+                                      user.profilePicture,
+                                    ),
                                   ),
                                   title: Text(user.username),
                                   trailing: IconButton(
@@ -194,12 +201,14 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
                                           _auth.currentUser!.uid;
 
                                       // Check if a chat exists between current user and recipient
-                                      final chatQuery = await FirebaseFirestore
-                                          .instance
-                                          .collection('chats')
-                                          .where('participants',
-                                              arrayContains: currentUserId)
-                                          .get();
+                                      final chatQuery =
+                                          await FirebaseFirestore.instance
+                                              .collection('chats')
+                                              .where(
+                                                'participants',
+                                                arrayContains: currentUserId,
+                                              )
+                                              .get();
 
                                       String chatId;
 
@@ -209,17 +218,17 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
                                         chatId = chatQuery.docs.first.id;
                                       } else {
                                         // Chat does not exist, create a new chat
-                                        final newChatDoc =
-                                            await FirebaseFirestore.instance
-                                                .collection('chats')
-                                                .add({
-                                          'participants': [
-                                            currentUserId,
-                                            user.id
-                                          ],
-                                          'created_at':
-                                              FieldValue.serverTimestamp(),
-                                        });
+                                        final newChatDoc = await FirebaseFirestore
+                                            .instance
+                                            .collection('chats')
+                                            .add({
+                                              'participants': [
+                                                currentUserId,
+                                                user.id,
+                                              ],
+                                              'created_at':
+                                                  FieldValue.serverTimestamp(),
+                                            });
                                         chatId = newChatDoc.id;
                                       }
 
@@ -230,9 +239,9 @@ class _ShareOptionsScreenState extends State<ShareOptionsScreen> {
                                 );
                               },
                             ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
     );
   }
 }

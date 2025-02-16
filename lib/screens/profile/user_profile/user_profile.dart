@@ -16,8 +16,11 @@ class UserProfileScreen extends StatefulWidget {
   final String userId;
   final String username;
 
-  const UserProfileScreen(
-      {required this.userId, required this.username, super.key});
+  const UserProfileScreen({
+    required this.userId,
+    required this.username,
+    super.key,
+  });
 
   @override
   // ignore: library_private_types_in_public_api
@@ -40,12 +43,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
-    final followingDoc = await FirebaseFirestore.instance
-        .collection('followers')
-        .doc(widget.userId)
-        .collection('userFollowers')
-        .doc(currentUserId)
-        .get();
+    final followingDoc =
+        await FirebaseFirestore.instance
+            .collection('followers')
+            .doc(widget.userId)
+            .collection('userFollowers')
+            .doc(currentUserId)
+            .get();
 
     setState(() {
       isFollowing = followingDoc.exists;
@@ -54,41 +58,45 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _fetchCounts() async {
     // Fetch post count
-    final postSnapshot = await FirebaseFirestore.instance
-        .collection('posts')
-        .where('user_id', isEqualTo: widget.userId)
-        .get();
+    final postSnapshot =
+        await FirebaseFirestore.instance
+            .collection('posts')
+            .where('user_id', isEqualTo: widget.userId)
+            .get();
 
-    final mediaPostCount = postSnapshot.docs.where((doc) {
-      final postData = doc.data() as Map<String, dynamic>?;
-      final fileUrl = postData?['file_url'] ?? '';
-      return fileUrl.isNotEmpty &&
-          (fileUrl.contains('.jpg') ||
-              fileUrl.contains('.png') ||
-              fileUrl.contains('.mp4'));
-    }).length;
+    final mediaPostCount =
+        postSnapshot.docs.where((doc) {
+          final postData = doc.data() as Map<String, dynamic>?;
+          final fileUrl = postData?['file_url'] ?? '';
+          return fileUrl.isNotEmpty &&
+              (fileUrl.contains('.jpg') ||
+                  fileUrl.contains('.png') ||
+                  fileUrl.contains('.mp4'));
+        }).length;
 
     setState(() {
       postCount = mediaPostCount;
     });
 
     // Fetch follower count
-    final followerSnapshot = await FirebaseFirestore.instance
-        .collection('followers')
-        .doc(widget.userId)
-        .collection('userFollowers')
-        .get();
+    final followerSnapshot =
+        await FirebaseFirestore.instance
+            .collection('followers')
+            .doc(widget.userId)
+            .collection('userFollowers')
+            .get();
 
     setState(() {
       followerCount = followerSnapshot.size;
     });
 
     // Fetch following count
-    final followingSnapshot = await FirebaseFirestore.instance
-        .collection('following')
-        .doc(widget.userId)
-        .collection('userFollowing')
-        .get();
+    final followingSnapshot =
+        await FirebaseFirestore.instance
+            .collection('following')
+            .doc(widget.userId)
+            .collection('userFollowing')
+            .get();
 
     setState(() {
       followingCount = followingSnapshot.size;
@@ -168,8 +176,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (currentUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content:
-                Text('Você precisa estar logado para iniciar um bate-papo.')),
+          content: Text('Você precisa estar logado para iniciar um bate-papo.'),
+        ),
       );
       return;
     }
@@ -177,10 +185,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final chatId = [currentUserId, userId]..sort();
     final chatIdString = chatId.join('-');
 
-    final chatQuery = await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(chatIdString)
-        .get();
+    final chatQuery =
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(chatIdString)
+            .get();
 
     bool isGroup =
         chatQuery.data()?['isGroup'] ?? false; // Check if it's a group chat
@@ -189,11 +198,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       Navigator.push(
         context,
         CupertinoPageRoute(
-          builder: (context) => ChatDetailScreen(
-            chatId: chatIdString,
-            userId: userId,
-            isGroup: isGroup, // Pass isGroup here
-          ),
+          builder:
+              (context) => ChatDetailScreen(
+                chatId: chatIdString,
+                userId: userId,
+                isGroup: isGroup, // Pass isGroup here
+              ),
         ),
       );
     } else {
@@ -201,20 +211,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           .collection('chats')
           .doc(chatIdString)
           .set({
-        'participants': [currentUserId, userId],
-        'last_message': '',
-        'last_message_time': Timestamp.now(),
-        'isGroup': false, // Default to false for individual chats
-      });
+            'participants': [currentUserId, userId],
+            'last_message': '',
+            'last_message_time': Timestamp.now(),
+            'isGroup': false, // Default to false for individual chats
+          });
 
       Navigator.push(
         context,
         CupertinoPageRoute(
-          builder: (context) => ChatDetailScreen(
-            chatId: chatIdString,
-            userId: userId,
-            isGroup: false,
-          ),
+          builder:
+              (context) => ChatDetailScreen(
+                chatId: chatIdString,
+                userId: userId,
+                isGroup: false,
+              ),
         ),
       );
     }
@@ -224,9 +235,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (context) => PostDetailsScreen(
-          postId: postId,
-        ),
+        builder: (context) => PostDetailsScreen(postId: postId),
       ),
     );
   }
@@ -253,18 +262,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(widget.userId)
-              .get(),
+          future:
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(widget.userId)
+                  .get(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Column(
                 children: [
                   ShimmerUserLoader(
-                      height: 100,
-                      width: 100,
-                      borderRadius: BorderRadius.all(Radius.circular(50))),
+                    height: 100,
+                    width: 100,
+                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                  ),
                   SizedBox(height: 16),
                   ShimmerUserLoader(height: 20, width: 150),
                   SizedBox(height: 8),
@@ -290,13 +301,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   children: [
                     CircleAvatar(
                       radius: 50,
-                      backgroundImage: userProfilePicture.isNotEmpty
-                          ? CachedNetworkImageProvider(userProfilePicture)
-                          : null,
+                      backgroundImage:
+                          userProfilePicture.isNotEmpty
+                              ? CachedNetworkImageProvider(userProfilePicture)
+                              : null,
                       backgroundColor: Colors.grey[300],
-                      child: userProfilePicture.isEmpty
-                          ? const Icon(Icons.person, size: 50)
-                          : null,
+                      child:
+                          userProfilePicture.isEmpty
+                              ? const Icon(Icons.person, size: 50)
+                              : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -306,24 +319,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           // Nome do usuário
                           Text(
                             userName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 24,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           // Biografia do usuário
                           Text(
                             userBio,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: Colors.grey.shade600,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 16),
                           // Contadores de Posts, Seguidores e Seguindo
@@ -332,9 +340,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             children: [
                               _buildInfoColumn(context, 'Posts', postCount),
                               _buildInfoColumn(
-                                  context, 'Seguidores', followerCount),
+                                context,
+                                'Seguidores',
+                                followerCount,
+                              ),
                               _buildInfoColumn(
-                                  context, 'Seguindo', followingCount),
+                                context,
+                                'Seguindo',
+                                followingCount,
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -352,8 +366,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () =>
-                                      _startChat(context, widget.userId),
+                                  onPressed:
+                                      () => _startChat(context, widget.userId),
                                   child: const Text(
                                     'Chat',
                                     style: TextStyle(color: Colors.blue),
@@ -370,23 +384,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('posts')
-                        .where('user_id', isEqualTo: widget.userId)
-                        .orderBy('created_at', descending: true)
-                        .snapshots(),
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('posts')
+                            .where('user_id', isEqualTo: widget.userId)
+                            .orderBy('created_at', descending: true)
+                            .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
-                            child: CircularProgressIndicator.adaptive());
+                          child: CircularProgressIndicator.adaptive(),
+                        );
                       }
 
                       // Filtra os posts que possuem um 'file_url' válido
-                      final postsWithMedia = snapshot.data!.docs.where((post) {
-                        final postData = post.data() as Map<String, dynamic>?;
-                        final postImage = postData?['file_url'] ?? '';
-                        return postImage.isNotEmpty;
-                      }).toList();
+                      final postsWithMedia =
+                          snapshot.data!.docs.where((post) {
+                            final postData =
+                                post.data() as Map<String, dynamic>?;
+                            final postImage = postData?['file_url'] ?? '';
+                            return postImage.isNotEmpty;
+                          }).toList();
 
                       if (postsWithMedia.isEmpty) {
                         return const Center(
@@ -400,10 +418,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       return GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 4,
-                          mainAxisSpacing: 4,
-                        ),
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 4,
+                              mainAxisSpacing: 4,
+                            ),
                         itemCount: postsWithMedia.length,
                         itemBuilder: (context, index) {
                           final post = postsWithMedia[index];
@@ -417,49 +435,56 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               children: [
                                 isVideo
                                     ? FutureBuilder<String?>(
-                                        future:
-                                            _generateVideoThumbnail(postImage),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.connectionState ==
-                                              ConnectionState.waiting) {
-                                            return const Center(
-                                                child: CircularProgressIndicator
-                                                    .adaptive());
-                                          }
+                                      future: _generateVideoThumbnail(
+                                        postImage,
+                                      ),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Center(
+                                            child:
+                                                CircularProgressIndicator.adaptive(),
+                                          );
+                                        }
 
-                                          final thumbnailPath = snapshot.data;
-                                          return Container(
-                                            decoration: BoxDecoration(
-                                              image: thumbnailPath != null
-                                                  ? DecorationImage(
+                                        final thumbnailPath = snapshot.data;
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            image:
+                                                thumbnailPath != null
+                                                    ? DecorationImage(
                                                       image: FileImage(
-                                                          File(thumbnailPath)),
+                                                        File(thumbnailPath),
+                                                      ),
                                                       fit: BoxFit.cover,
                                                     )
-                                                  : null,
-                                              color: Colors.grey[200],
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
-                                                  color: Colors.grey[300]!),
+                                                    : null,
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
-                                          );
-                                        },
-                                      )
-                                    : Container(
-                                        decoration: BoxDecoration(
-                                          image: DecorationImage(
-                                            image: CachedNetworkImageProvider(
-                                                postImage),
-                                            fit: BoxFit.cover,
+                                            border: Border.all(
+                                              color: Colors.grey[300]!,
+                                            ),
                                           ),
-                                          color: Colors.grey[200],
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          border: Border.all(
-                                              color: Colors.grey[300]!),
+                                        );
+                                      },
+                                    )
+                                    : Container(
+                                      decoration: BoxDecoration(
+                                        image: DecorationImage(
+                                          image: CachedNetworkImageProvider(
+                                            postImage,
+                                          ),
+                                          fit: BoxFit.cover,
+                                        ),
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.grey[300]!,
                                         ),
                                       ),
+                                    ),
                                 if (isVideo)
                                   Positioned(
                                     bottom: 8,
@@ -497,14 +522,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       children: [
         Text(
           count.toString(),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-        ),
+        Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith()),
       ],
     );
   }

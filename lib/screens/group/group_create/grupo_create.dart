@@ -54,8 +54,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
     String? imageUrl;
     if (_groupImage != null) {
-      final storageRef =
-          FirebaseStorage.instance.ref().child('group_images/$groupId');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'group_images/$groupId',
+      );
       final uploadTask = storageRef.putFile(File(_groupImage!.path));
       final taskSnapshot = await uploadTask;
       imageUrl = await taskSnapshot.ref.getDownloadURL();
@@ -93,10 +94,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: _createGroup,
-            icon: const Icon(Icons.check),
-          )
+          IconButton(onPressed: _createGroup, icon: const Icon(Icons.check)),
         ],
       ),
       body: ListView(
@@ -107,27 +105,29 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             child: CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey[300],
-              backgroundImage: _groupImage != null
-                  ? FileImage(File(_groupImage!.path))
-                  : null,
-              child: _groupImage == null
-                  ? Icon(Icons.camera_alt, size: 30, color: Colors.grey[800])
-                  : null,
+              backgroundImage:
+                  _groupImage != null
+                      ? FileImage(File(_groupImage!.path))
+                      : null,
+              child:
+                  _groupImage == null
+                      ? Icon(
+                        Icons.camera_alt,
+                        size: 30,
+                        color: Colors.grey[800],
+                      )
+                      : null,
             ),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _groupNameController,
-            decoration: const InputDecoration(
-              labelText: 'Nome do Grupo',
-            ),
+            decoration: const InputDecoration(labelText: 'Nome do Grupo'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _groupDescriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Descrição',
-            ),
+            decoration: const InputDecoration(labelText: 'Descrição'),
             maxLines: 3,
           ),
           const SizedBox(height: 16),
@@ -149,9 +149,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 future: _getUserData(userId),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const ListTile(
-                      title: Text('Carregando...'),
-                    );
+                    return const ListTile(title: Text('Carregando...'));
                   }
 
                   final userData = snapshot.data!;
@@ -161,12 +159,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundImage: profilePicture.isNotEmpty
-                          ? NetworkImage(profilePicture)
-                          : null,
-                      child: profilePicture.isEmpty
-                          ? Text(username[0].toUpperCase())
-                          : null,
+                      backgroundImage:
+                          profilePicture.isNotEmpty
+                              ? NetworkImage(profilePicture)
+                              : null,
+                      child:
+                          profilePicture.isEmpty
+                              ? Text(username[0].toUpperCase())
+                              : null,
                     ),
                     title: Text(username),
                   );

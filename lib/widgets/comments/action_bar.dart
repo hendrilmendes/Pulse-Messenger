@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:social/l10n/app_localizations.dart';
 
 class CommentActionBar extends StatelessWidget {
   final TextEditingController commentController;

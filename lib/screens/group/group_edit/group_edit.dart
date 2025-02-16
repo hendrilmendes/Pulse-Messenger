@@ -90,10 +90,10 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
           .collection('chats')
           .doc(widget.chatId)
           .update({
-        'group_name': name,
-        'group_description': description,
-        'group_image': _photoUrl ?? widget.currentGroupPhotoUrl,
-      });
+            'group_name': name,
+            'group_description': description,
+            'group_image': _photoUrl ?? widget.currentGroupPhotoUrl,
+          });
       // ignore: use_build_context_synchronously
       Navigator.pop(context);
     } catch (error) {
@@ -120,42 +120,47 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator.adaptive())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: _photoUrl != null
-                          ? CachedNetworkImageProvider(_photoUrl!)
-                          : widget.currentGroupPhotoUrl.isNotEmpty
-                              ? CachedNetworkImageProvider(
-                                  widget.currentGroupPhotoUrl)
-                              : const AssetImage('assets/default_avatar.png')
-                                  as ImageProvider,
-                      child: _photoUrl == null
-                          ? const Icon(Icons.camera_alt)
-                          : null,
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator.adaptive())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundImage:
+                            _photoUrl != null
+                                ? CachedNetworkImageProvider(_photoUrl!)
+                                : widget.currentGroupPhotoUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(
+                                  widget.currentGroupPhotoUrl,
+                                )
+                                : const AssetImage('assets/default_avatar.png')
+                                    as ImageProvider,
+                        child:
+                            _photoUrl == null
+                                ? const Icon(Icons.camera_alt)
+                                : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _nameController,
-                    decoration:
-                        const InputDecoration(labelText: 'Nome do Grupo'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _descriptionController,
-                    decoration: const InputDecoration(labelText: 'Descrição'),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do Grupo',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(labelText: 'Descrição'),
+                    ),
+                  ],
+                ),
               ),
-            ),
     );
   }
 }

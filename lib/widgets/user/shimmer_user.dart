@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; // Adicione o pacote shimmer ao seu pubspec.yaml
+import 'package:shimmer/shimmer.dart';
 
 class ShimmerUserLoader extends StatelessWidget {
   final double height;
