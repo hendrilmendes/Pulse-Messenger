@@ -38,8 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _pages.add(FeedScreen(currentUserId: currentUserId));
-        _pages.add(const SearchScreen());
         _pages.add(const ChatsScreen());
+        _pages.add(const SearchScreen());
         _pages.add(const NotificationsScreen());
         _pages.add(const ProfileScreen());
       });
@@ -47,10 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _getUserProfilePicture() async {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserId)
-        .get();
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .get();
 
     if (userDoc.exists) {
       setState(() {
@@ -67,9 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
         transitionBuilder: (Widget child, Animation<double> animation) {
           return FadeTransition(opacity: animation, child: child);
         },
-        child: _pages.isEmpty
-            ? const Center(child: CircularProgressIndicator.adaptive())
-            : _pages[_currentIndex],
+        child:
+            _pages.isEmpty
+                ? const Center(child: CircularProgressIndicator.adaptive())
+                : _pages[_currentIndex],
       ),
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
@@ -91,29 +93,31 @@ class _HomeScreenState extends State<HomeScreen> {
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             NavigationDestination(
-              icon: const Icon(Icons.home_filled),
-              label: AppLocalizations.of(context)!.home,
+              icon: const Icon(Icons.chat),
+              label: AppLocalizations.of(context)!.chat,
             ),
             NavigationDestination(
               icon: const Icon(Icons.search),
               label: AppLocalizations.of(context)!.search,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.chat),
-              label: AppLocalizations.of(context)!.chat,
+              icon: const Icon(Icons.home_filled),
+              label: AppLocalizations.of(context)!.home,
             ),
             NavigationDestination(
               icon: const Icon(Icons.notifications),
               label: AppLocalizations.of(context)!.activity,
             ),
             NavigationDestination(
-              icon: profilePictureUrl != null
-                  ? CircleAvatar(
-                      backgroundImage:
-                          CachedNetworkImageProvider(profilePictureUrl!),
-                      radius: 12,
-                    )
-                  : const Icon(Icons.person),
+              icon:
+                  profilePictureUrl != null
+                      ? CircleAvatar(
+                        backgroundImage: CachedNetworkImageProvider(
+                          profilePictureUrl!,
+                        ),
+                        radius: 12,
+                      )
+                      : const Icon(Icons.person),
               label: AppLocalizations.of(context)!.profile,
             ),
           ],
