@@ -1,66 +1,19 @@
-import 'package:feedback/feedback.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:social/l10n/app_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:social/providers/locale_provider.dart';
-import 'package:social/providers/theme_provider.dart';
-import 'package:social/screens/chat/chat.dart';
-import 'package:social/screens/comments/comments.dart';
-import 'package:social/screens/home/home.dart';
+import 'package:social/services/auth/auth.dart';
+import 'package:social/widgets/bottom_navigation.dart';
+import 'package:social/firebase_options.dart';
+import 'package:social/l10n/app_localizations.dart';
 import 'package:social/screens/login/login.dart';
-import 'package:social/services/notification.dart';
-import 'package:social/services/presense.dart';
-import 'providers/auth_provider.dart';
-
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-}
+import 'package:social/theme/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  final notificationService = NotificationService();
-  await notificationService.init();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-  flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()!
-      .requestNotificationsPermission();
-
-  await Firebase.initializeApp();
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => LocaleProvider(),
-      child: Consumer<LocaleProvider>(
-        builder: (context, localeProvider, child) {
-          return BetterFeedback(
-            theme: FeedbackThemeData.light(),
-            darkTheme: FeedbackThemeData.dark(),
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalFeedbackLocalizationsDelegate(),
-            ],
-            localeOverride: localeProvider.locale,
-            child: const MyApp(),
-          );
-        },
-      ),
-    ),
-  );
+  runApp(MyApp());
 }
 
 ThemeMode _getThemeMode(ThemeModeType mode) {
@@ -74,106 +27,56 @@ ThemeMode _getThemeMode(ThemeModeType mode) {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final AuthService authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (context) => AuthProvider(),
-        ),
-        ChangeNotifierProvider<ThemeModel>(
-          create: (_) => ThemeModel(),
-        ),
-        ChangeNotifierProvider<LocaleProvider>(
-          create: (_) => LocaleProvider(),
-        ),
+        ChangeNotifierProvider<AuthService>(create: (context) => AuthService()),
+        ChangeNotifierProvider<ThemeModel>(create: (_) => ThemeModel()),
       ],
-      child: Consumer3<ThemeModel, LocaleProvider, AuthProvider>(
-        builder: (_, themeModel, localeProvider, authProvider, __) {
-          Intl.defaultLocale = localeProvider.locale?.toLanguageTag();
-
+      child: Consumer<ThemeModel>(
+        builder: (_, themeModel, _) {
           return MaterialApp(
-              theme: ThemeData(
-                brightness: Brightness.light,
-                useMaterial3: true,
-                textTheme: Typography()
-                    .black
-                    .apply(fontFamily: GoogleFonts.robotoFlex().fontFamily),
-              ),
-              darkTheme: ThemeData(
-                brightness: Brightness.dark,
-                useMaterial3: true,
-                textTheme: Typography()
-                    .white
-                    .apply(fontFamily: GoogleFonts.robotoFlex().fontFamily),
-              ),
-              themeMode: _getThemeMode(themeModel.themeMode),
-              locale: localeProvider.locale,
-              supportedLocales: AppLocalizations.supportedLocales,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              localeResolutionCallback: (locale, supportedLocales) {
-                for (var supportedLocale in supportedLocales) {
-                  if (supportedLocale.languageCode == locale?.languageCode &&
-                      supportedLocale.countryCode == locale?.countryCode) {
-                    return supportedLocale;
-                  }
-                }
-
-                return supportedLocales.first;
-              },
-              debugShowCheckedModeBanner: false,
-              home: const AuthWrapper(),
-              onGenerateRoute: (RouteSettings settings) {
-                final args = settings.arguments as Map<String, dynamic>?;
-
-                switch (settings.name) {
-                  case '/home':
-                    return CupertinoPageRoute(
-                        builder: (_) => const HomeScreen());
-                  case '/login':
-                    return CupertinoPageRoute(builder: (_) => LoginScreen());
-                  case '/chat':
-                    return CupertinoPageRoute(
-                        builder: (_) => const ChatsScreen());
-                  case '/comments':
-                    final postId = args?['postId'] as String?;
-                    final postOwnerId = args?['postOwnerId'] as String?;
-                    if (postId != null && postOwnerId != null) {
-                      return CupertinoPageRoute(
-                        builder: (_) => CommentsScreen(
-                            postId: postId, postOwnerId: postOwnerId),
-                      );
-                    }
-                    return CupertinoPageRoute(
-                        builder: (_) => const HomeScreen());
-                  default:
-                    return CupertinoPageRoute(
-                        builder: (_) => const HomeScreen());
-                }
-              });
+            theme: themeModel.lightTheme,
+            darkTheme: themeModel.darkTheme,
+            themeMode: _getThemeMode(themeModel.themeMode),
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: _buildHome(authService),
+          );
         },
       ),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
-    if (authProvider.isAuthenticated) {
-      final presenceService = PresenceService();
-      presenceService.setUserOnline();
-
-      return const HomeScreen();
-    } else {
-      return LoginScreen();
-    }
-  }
+Widget _buildHome(AuthService authService) {
+  return FutureBuilder<User?>(
+    future: authService.currentUser(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.hasData) {
+          return const BottomNav();
+        } else {
+          return LoginScreen(authService: authService);
+        }
+      } else {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator.adaptive()),
+        );
+      }
+    },
+  );
 }
