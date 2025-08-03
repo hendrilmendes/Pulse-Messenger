@@ -54,19 +54,15 @@ class DefaultFirebaseOptions {
     appId: '1:851902004339:android:2a58ed7b6d8ed10630fe06',
     messagingSenderId: '851902004339',
     projectId: 'social-2a172',
-    databaseURL: 'https://social-2a172-default-rtdb.firebaseio.com',
     storageBucket: 'social-2a172.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyA0Ovr38ZuJZXovi2HQtNoepjNwf17Ht7Y',
-    appId: '1:851902004339:ios:095ba25b75994f2430fe06',
+    appId: '1:851902004339:ios:fa48d5261020839c30fe06',
     messagingSenderId: '851902004339',
     projectId: 'social-2a172',
-    databaseURL: 'https://social-2a172-default-rtdb.firebaseio.com',
     storageBucket: 'social-2a172.appspot.com',
-    androidClientId: '851902004339-g9garhfp7di6s1rf9o1oqfvd04rt0ppb.apps.googleusercontent.com',
-    iosClientId: '851902004339-62rlem2tklmjsplmatqob8pteqhpo6bb.apps.googleusercontent.com',
-    iosBundleId: 'com.github.hendrilmendes.social',
+    iosBundleId: 'com.example.social',
   );
 }

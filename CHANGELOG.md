@@ -6,15 +6,15 @@ Changelog
 
 ## Alterações
 
-- 
-
 ### Correções
 
-- 
+- Melhorias na detecção quando um usuário estiver online
 
 ### Features
 
-- 
+- Suporte ao Inglês
+- Agora e possível postar videos no Story
+- Veja quem viu seus Storys
 
 ======================================================
 
